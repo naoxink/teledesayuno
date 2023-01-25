@@ -26,7 +26,7 @@ Object.keys(ifaces).forEach(function (ifname) {
 })
 
 app.get('/', (req, res) => {
-  res.sendFile('./templates/index.html')
+  res.sendFile('templates/index.html', { root: __dirname })
 })
 
 http.listen(process.env.PORT, () => {
