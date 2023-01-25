@@ -26,14 +26,14 @@ Object.keys(ifaces).forEach(function (ifname) {
 })
 
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/templates/index.html')
+  res.sendFile('./templates/index.html')
 })
 
-http.listen(3000, () => {
-  console.log('listening on *:3000')
+http.listen(process.env.PORT, () => {
+  console.log(`server listening on *:${process.env.PORT}`)
 })
 
-var usernames = [  ]
+var usernames = []
 var connectedUsers = 0
 const PASSWORD = 'holi'
 
@@ -48,10 +48,10 @@ io.on('connection', socket => {
   setInterval(() => {
     let resume = {
       'count': connectedUsers,
-      'users': [  ]
+      'users': []
     }
-    for(let id in io.sockets.connected){
-      if(io.sockets.connected[id].authenticated){
+    for (let id in io.sockets.connected) {
+      if (io.sockets.connected[id].authenticated) {
         resume.users.push({
           'id': id,
           'username': io.sockets.connected[id].username,
@@ -65,7 +65,7 @@ io.on('connection', socket => {
   console.log(`User connected: ${socket.id}`)
 
   socket.on('auth', pw => {
-    if(pw === PASSWORD){
+    if (pw === PASSWORD) {
       socket.authenticated = true
       console.log(socket.authenticated)
     }
@@ -78,7 +78,7 @@ io.on('connection', socket => {
   })
 
   socket.on('chat message', msg => {
-    if(!socket.authenticated) return false
+    if (!socket.authenticated) return false
     let now = new Date()
     let timestamp = [
       now.getDate() < 10 ? '0' + now.getDate() : now.getDate(), '/',
@@ -88,8 +88,8 @@ io.on('connection', socket => {
       now.getMinutes() < 10 ? '0' + now.getMinutes() : now.getMinutes(), ':',
       now.getSeconds() < 10 ? '0' + now.getSeconds() : now.getSeconds()
     ].join('')
-    for(let id in io.sockets.connected){
-      if(io.sockets.connected[id].authenticated){
+    for (let id in io.sockets.connected) {
+      if (io.sockets.connected[id].authenticated) {
         io.to(id).volatile.emit('chat message', {
           'msg': msg,
           'user': socket.username || socket.id,
@@ -102,8 +102,8 @@ io.on('connection', socket => {
   })
 
   socket.on('set username', username => {
-    if(!socket.authenticated) return false
-    if(usernames.includes(username)){
+    if (!socket.authenticated) return false
+    if (usernames.includes(username)) {
       return io.to(socket.id).emit('notification', { 'msg': 'El nombre de usuario ya está en uso' })
     }
     removeUsername(socket.username)
@@ -119,10 +119,10 @@ io.on('connection', socket => {
   socket.on('get active users', () => {
     let resume = {
       'count': connectedUsers,
-      'users': [  ]
+      'users': []
     }
-    for(let id in io.sockets.connected){
-      if(io.sockets.connected[id].authenticated){
+    for (let id in io.sockets.connected) {
+      if (io.sockets.connected[id].authenticated) {
         resume.users.push({
           'id': id,
           'username': io.sockets.connected[id].username,
@@ -135,24 +135,24 @@ io.on('connection', socket => {
 
 })
 
-function removeUsername(username){
+function removeUsername(username) {
   usernames.splice(usernames.indexOf(username), 1)
 }
 
 function hashCode(str) {
-    var hash = 0
-    for (var i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash)
-    return hash
+  var hash = 0
+  for (var i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash)
+  return hash
 }
 
-function intToRGB(i){
-    var c = (i & 0x00FFFFFF)
-        .toString(16)
-        .toUpperCase()
+function intToRGB(i) {
+  var c = (i & 0x00FFFFFF)
+    .toString(16)
+    .toUpperCase()
 
-    return "00000".substring(0, 6 - c.length) + c
+  return "00000".substring(0, 6 - c.length) + c
 }
 
-function idToColor(userid){
+function idToColor(userid) {
   return '#' + intToRGB(hashCode(userid))
 }
