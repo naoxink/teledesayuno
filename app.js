@@ -3,7 +3,6 @@ const http = require('http').Server(app)
 const io = require('socket.io')(http)
 var os = require('os');
 var ifaces = os.networkInterfaces();
-let localAddress = ''
 
 Object.keys(ifaces).forEach(function (ifname) {
   var alias = 0
@@ -26,7 +25,7 @@ Object.keys(ifaces).forEach(function (ifname) {
 })
 
 app.get('/', (req, res) => {
-  res.sendFile('templates/index.html', { root: __dirname })
+  res.sendFile('public/templates/index.html', { root: __dirname })
 })
 
 http.listen(process.env.PORT, () => {
