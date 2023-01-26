@@ -1,276 +1,309 @@
 <!doctype html>
 <html>
-  <head>
-    <title>Live chat TEST</title>
-    <style>
-      span { display: inline-block; }
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body, html { font: 14px Helvetica, Arial; background-color: #EEE; }
-      .block {
-        background-color: #EEE;
-        padding: 5px;
-        width: 90%;
-        margin: 0 auto;
-        margin-top: 10px;
-        -webkit-border-radius: 4px;
-        -moz-border-radius: 4px;
-        -ms-border-radius: 4px;
-        -o-border-radius: 4px;
-        border-radius: 4px;
-        border-bottom: 1px solid rgba(0, 0, 0, .1);
-      }
-      input[type="text"] {
-        border: 0;
-        padding: 8px;
-        width: 85%;
-        margin-right: .5%;
-        -webkit-border-radius: 4px;
-        -moz-border-radius: 4px;
-        -ms-border-radius: 4px;
-        -o-border-radius: 4px;
-        border-radius: 4px;
-      }
-      button {
-        width: 13%;
-        background: teal;
-        color: white;
-        border: none;
-        padding: 10px;
-        cursor: pointer;
-        -webkit-border-radius: 4px;
-        -moz-border-radius: 4px;
-        -ms-border-radius: 4px;
-        -o-border-radius: 4px;
-        border-radius: 4px;
-      }
-      input:focus {
-        outline: 1px solid teal;
-      }
-      #messages {
-        list-style-type: none;
-        margin: 0 auto;
-        padding: 0;
-        width: 90%;
-        overflow: auto;
-        background-color: #FFF;
-        -webkit-border-radius: 4px;
-        -moz-border-radius: 4px;
-        -ms-border-radius: 4px;
-        -o-border-radius: 4px;
-        border-radius: 4px;
-        margin-top: 10px;
-      }
-      #messages li {
-        padding: 5px;
-        border-bottom: 1px solid rgba(0, 0, 0, .1);
-      }
-      .timestamp {
-        color: #999;
-        -webkit-border-radius: 3px;
-        -moz-border-radius: 3px;
-        -ms-border-radius: 3px;
-        -o-border-radius: 3px;
-        border-radius: 3px;
-        margin-right: 5px;
-      }
-      .user-id {
-        font-weight: bold;
-        margin-right: 10px;
-      }
-      .user-id:after{
-        content: ':';
-      }
-      .user-connected {
-        margin-right: 5px;
-      }
-      .w25 {
-        display: inline-block;
-        width: 25%;
-      }
-      .w50 {
-        display: inline-block;
-        width: 50%;
-      }
-      [v-cloak] { display: none; }
-    </style>
-  </head>
-  <body>
-    <div id="app" v-cloak>
-      <div class="block" id="username">
-        <div class="w25">
-          <input type="text" class="username" v-model.trim="username" @keyup.13="setUsername"><button @click="setUsername">Enviar</button>
-        </div>
-        <div class="w25">
-          <label>
-            <input type="checkbox" @click="toggleNotifications"> Activar notificaciones
-          </label>
-        </div>
+
+<head>
+  <title>Live chat TEST</title>
+  <style>
+    span {
+      display: inline-block;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body,
+    html {
+      font: 14px Helvetica, Arial;
+      background-color: #EEE;
+    }
+
+    .block {
+      background-color: #EEE;
+      padding: 5px;
+      width: 90%;
+      margin: 0 auto;
+      margin-top: 10px;
+      -webkit-border-radius: 4px;
+      -moz-border-radius: 4px;
+      -ms-border-radius: 4px;
+      -o-border-radius: 4px;
+      border-radius: 4px;
+      border-bottom: 1px solid rgba(0, 0, 0, .1);
+    }
+
+    input[type="text"] {
+      border: 0;
+      padding: 8px;
+      width: 85%;
+      margin-right: .5%;
+      -webkit-border-radius: 4px;
+      -moz-border-radius: 4px;
+      -ms-border-radius: 4px;
+      -o-border-radius: 4px;
+      border-radius: 4px;
+    }
+
+    button {
+      width: 13%;
+      background: teal;
+      color: white;
+      border: none;
+      padding: 10px;
+      cursor: pointer;
+      -webkit-border-radius: 4px;
+      -moz-border-radius: 4px;
+      -ms-border-radius: 4px;
+      -o-border-radius: 4px;
+      border-radius: 4px;
+    }
+
+    input:focus {
+      outline: 1px solid teal;
+    }
+
+    #messages {
+      list-style-type: none;
+      margin: 0 auto;
+      padding: 0;
+      width: 90%;
+      overflow: auto;
+      background-color: #FFF;
+      -webkit-border-radius: 4px;
+      -moz-border-radius: 4px;
+      -ms-border-radius: 4px;
+      -o-border-radius: 4px;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+
+    #messages li {
+      padding: 5px;
+      border-bottom: 1px solid rgba(0, 0, 0, .1);
+    }
+
+    .timestamp {
+      color: #999;
+      -webkit-border-radius: 3px;
+      -moz-border-radius: 3px;
+      -ms-border-radius: 3px;
+      -o-border-radius: 3px;
+      border-radius: 3px;
+      margin-right: 5px;
+    }
+
+    .user-id {
+      font-weight: bold;
+      margin-right: 10px;
+    }
+
+    .user-id:after {
+      content: ':';
+    }
+
+    .user-connected {
+      margin-right: 5px;
+    }
+
+    .w25 {
+      display: inline-block;
+      width: 25%;
+    }
+
+    .w50 {
+      display: inline-block;
+      width: 50%;
+    }
+
+    [v-cloak] {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app" v-cloak>
+    <div class="block" id="username">
+      <div class="w25">
+        <input type="text" class="username" v-model.trim="username" @keyup.13="setUsername"><button
+          @click="setUsername">Enviar</button>
       </div>
-      <div class="block">
-        Usuarios conectados: <span class="active-users">{{ activeUsersCount }}</span>
-        <strong class="user-connected" v-for="user in activeUsers" :key="user.id" :style="{ color: user.color }">{{ user.username }}</strong>
-      </div>
-      <ul id="messages" ref="messagesUl" :style="messagesListStyle">
-        <li v-for="message in messages">
-          <span class="timestamp">{{ message.timestamp }}</span>
-          <span class="username" :style="{ color: message.color }">{{ message.user }}</span>
-          <span class="text">{{ message.msg }}</span>
-        </li>
-      </ul>
-      <div class="block" id="send">
-        <input type="text" id="m" autocomplete="off" ref="sendInput" v-model.trim="message" @keyup.13="send"><button @click="send">Send</button>
+      <div class="w25">
+        <label>
+          <input type="checkbox" @click="toggleNotifications"> Activar notificaciones
+        </label>
       </div>
     </div>
+    <div class="block">
+      Usuarios conectados: <span class="active-users">{{ activeUsersCount }}</span>
+      <strong class="user-connected" v-for="user in activeUsers" :key="user.id" :style="{ color: user.color }">{{
+        user.username }}</strong>
+    </div>
+    <ul id="messages" ref="messagesUl" :style="messagesListStyle">
+      <li v-for="message in messages">
+        <span class="timestamp">{{ message.timestamp }}</span>
+        <span class="username" :style="{ color: message.color }">{{ message.user }}</span>
+        <span class="text">{{ message.msg }}</span>
+      </li>
+    </ul>
+    <div class="block" id="send">
+      <input type="text" id="m" autocomplete="off" ref="sendInput" v-model.trim="message" @keyup.13="send"><button
+        @click="send">Send</button>
+    </div>
+  </div>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue-resource/1.5.1/vue-resource.js"></script>
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vue-resource/1.5.1/vue-resource.js"></script>
 
-    <script>
-      window.addEventListener('load', () => {
-        var app = new Vue({
-          'el': '#app',
-          'data': {
-            'activeUsersCount': 0,
-            'activeUsers': [  ],
-            'messages': [  ],
-            'socket': io(),
-            'title': document.title,
-            'unread': 0,
-            'isfocused': true,
-            'username': '',
-            'message': '',
-            'windowHeight': 0,
-            'notifications': false
-          },
-          'computed': {
-            messagesListStyle(){
-              return { 'height': (this.windowHeight - 200) + 'px' }
-            }
-          },
-          'methods': {
-            toggleNotifications(){
-              this.notifications = !this.notifications
-            },
-            isCommand(){
-              if(this.message.indexOf('/') !== 0) return false
-              switch(this.message){
-                case '/clean':
-                  this.messages = [  ]
-                  return true
-                case '/setColor':
-                  var color = prompt('Color')
-                  this.setColor(color)
-                  return true
-                case '/help':
-                  alert(`Comandos disponibles:\n\n- clean: limpia los mensajes\n- setColor: Establece el color del nick`)
-                  return true
-                default:
-                  return false
-              }
-            },
-            send(){
-              if(!this.message) return
-              if(!this.isCommand()){
-                this.socket.emit('chat message', this.message)
-              }
-              this.message = ''
-            },
-            getActiveUsers(){
-              this.socket.emit('get active users')
-            },
-            setColor(color){
-              this.socket.emit('set color', color)
-              localStorage.setItem('color', color)
-            },
-            setUsername(){
-              this.socket.emit('set username', this.username)
-              localStorage.setItem('username', this.username)
-              this.getActiveUsers()
-            },
-            setPw(pw){
-              this.socket.emit('auth', pw)
-            },
-            setSocketListeners(){
-              var _this = this
-              _this.socket.on('active users', function(data){
-                _this.activeUsers = data.users
-                _this.activeUsersCount = data.count
-              })
-              _this.socket.on('user connected', function(){
-                _this.getActiveUsers()
-              })
-              _this.socket.on('chat message', function(data){
-                if(!_this.isfocused){
-                  _this.unread++
-                }
-                if(_this.unread){
-                  document.title = '(' + _this.unread + ') ' + _this.title
-                }
-                _this.messages.push(data)
-                if(_this.messages.length > 50){
-                  _this.messages.shift()
-                }
-                _this.$nextTick(function(){
-                  _this.$refs.messagesUl.scrollTop = _this.$refs.messagesUl.scrollHeight
-                })
-                if(_this.notifications && !data.ownMsg && !_this.isfocused) _this.notify(data.msg)
-              })
-            },
-            notify(txt){
-              if(!Notification){
-                  alert('Desktop notifications not available in your browser. Try Google Chrome.')
-                  return
-              }
-              if(Notification.permission !== 'granted'){
-                Notification.requestPermission()
-              }else{
-                var notification = new Notification('¡Notificación!', { 'body': txt })
-              }
-            }
-          },
-          mounted(){
-            var _this = this
-            _this.setSocketListeners()
-            if(!localStorage.getItem('pw')){
-              var pw = prompt('Pst! La pass.')
-            }else{
-              var pw = localStorage.getItem('pw')
-            }
-            _this.setPw(pw)
-            if(!localStorage.getItem('username')){
-              var username = prompt('Nombre de usuario')
-            }else{
-              var username = localStorage.getItem('username')
-            }
-            if(username){
-              _this.username = username
-              _this.setUsername()
-            }else{
-              $('.username').val(socket.id)
-              _this.username = socket.id
-            }
-            if(localStorage.getItem('color')){
-              _this.setColor(localStorage.getItem('color'))
-            }
-            _this.getActiveUsers()
-            window.onfocus = function(){
-              _this.isfocused = true
-              _this.unread = 0
-              document.title = _this.title
-            }
-            window.onblur = function() {
-              _this.isfocused = false
-            }
-            if(Notification.permission !== 'granted') Notification.requestPermission()
-            window.addEventListener('resize', function(){
-              _this.windowHeight = window.innerHeight
-            })
-            _this.windowHeight = window.innerHeight
-            _this.$refs.sendInput.focus()
+  <script>
+    window.addEventListener('load', () => {
+      var app = new Vue({
+        'el': '#app',
+        'data': {
+          'activeUsersCount': 0,
+          'activeUsers': [],
+          'messages': [],
+          'socket': io(),
+          'title': document.title,
+          'unread': 0,
+          'isfocused': true,
+          'username': '',
+          'message': '',
+          'windowHeight': 0,
+          'notifications': false
+        },
+        'computed': {
+          messagesListStyle() {
+            return { 'height': (this.windowHeight - 200) + 'px' }
           }
-        })
+        },
+        'methods': {
+          toggleNotifications() {
+            this.notifications = !this.notifications
+          },
+          isCommand() {
+            if (this.message.indexOf('/') !== 0) return false
+            switch (this.message) {
+              case '/clean':
+                this.messages = []
+                return true
+              case '/setColor':
+                var color = prompt('Color')
+                this.setColor(color)
+                return true
+              case '/help':
+                alert(`Comandos disponibles:\n\n- clean: limpia los mensajes\n- setColor: Establece el color del nick`)
+                return true
+              default:
+                return false
+            }
+          },
+          send() {
+            if (!this.message) return
+            if (!this.isCommand()) {
+              this.socket.emit('chat message', this.message)
+            }
+            this.message = ''
+          },
+          getActiveUsers() {
+            this.socket.emit('get active users')
+          },
+          setColor(color) {
+            this.socket.emit('set color', color)
+            localStorage.setItem('color', color)
+          },
+          setUsername() {
+            this.socket.emit('set username', this.username)
+            localStorage.setItem('username', this.username)
+            this.getActiveUsers()
+          },
+          setPw(pw) {
+            this.socket.emit('auth', pw)
+          },
+          setSocketListeners() {
+            var _this = this
+            _this.socket.on('active users', function (data) {
+              _this.activeUsers = data.users
+              _this.activeUsersCount = data.count
+            })
+            _this.socket.on('user connected', function () {
+              _this.getActiveUsers()
+            })
+            _this.socket.on('chat message', function (data) {
+              if (!_this.isfocused) {
+                _this.unread++
+              }
+              if (_this.unread) {
+                document.title = '(' + _this.unread + ') ' + _this.title
+              }
+              _this.messages.push(data)
+              if (_this.messages.length > 50) {
+                _this.messages.shift()
+              }
+              _this.$nextTick(function () {
+                _this.$refs.messagesUl.scrollTop = _this.$refs.messagesUl.scrollHeight
+              })
+              if (_this.notifications && !data.ownMsg && !_this.isfocused) _this.notify(data.msg)
+            })
+          },
+          notify(txt) {
+            if (!Notification) {
+              alert('Desktop notifications not available in your browser. Try Google Chrome.')
+              return
+            }
+            if (Notification.permission !== 'granted') {
+              Notification.requestPermission()
+            } else {
+              var notification = new Notification('¡Notificación!', { 'body': txt })
+            }
+          }
+        },
+        mounted() {
+          var _this = this
+          _this.setSocketListeners()
+          if (!localStorage.getItem('pw')) {
+            var pw = prompt('Pst! La pass.')
+          } else {
+            var pw = localStorage.getItem('pw')
+          }
+          _this.setPw(pw)
+          if (!localStorage.getItem('username')) {
+            var username = prompt('Nombre de usuario')
+          } else {
+            var username = localStorage.getItem('username')
+          }
+          if (username) {
+            _this.username = username
+            _this.setUsername()
+          } else {
+            $('.username').val(socket.id)
+            _this.username = socket.id
+          }
+          if (localStorage.getItem('color')) {
+            _this.setColor(localStorage.getItem('color'))
+          }
+          _this.getActiveUsers()
+          window.onfocus = function () {
+            _this.isfocused = true
+            _this.unread = 0
+            document.title = _this.title
+          }
+          window.onblur = function () {
+            _this.isfocused = false
+          }
+          if (Notification.permission !== 'granted') Notification.requestPermission()
+          window.addEventListener('resize', function () {
+            _this.windowHeight = window.innerHeight
+          })
+          _this.windowHeight = window.innerHeight
+          _this.$refs.sendInput.focus()
+        }
       })
-    </script>
-  </body>
+    })
+  </script>
+</body>
+
 </html>
