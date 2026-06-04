@@ -191,6 +191,9 @@
 
             if (!salaId || !password) return alert("Introduce sala y contraseña.");
 
+            if (window.Notification && Notification.permission === "default") {
+                Notification.requestPermission();
+            }
             window.location.hash = encodeURIComponent(salaId);
 
             // 1. Derivar clave criptográfica simétrica
@@ -255,6 +258,14 @@
                     
                     // Pasamos el autor y el texto a la pantalla
                     agregarMensajePantalla(datos.autor, datos.texto);
+
+                    if (datos.autor !== miAlias && Notification.permission === "granted" && document.hidden) {
+                        new Notification(`#${salaId} - ${datos.autor}`, {
+                            body: datos.texto,
+                            tag: 'chat-notification', // Evita que se acumulen 40 globos en Windows/Mac; los mensajes nuevos reemplazan al anterior
+                            renotify: true // Hace que vuelva a vibrar/sonar aunque tenga el mismo tag
+                        });
+                    }
                 } catch (err) {
                     // Si falla el descifrado (error de integridad o clave incorrecta), ignoramos el mensaje en silencio
                     console.warn("Mensaje descartado: Clave incorrecta o manipulación de datos.");
