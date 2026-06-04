@@ -2,7 +2,6 @@
    1. PALETAS DE COLORES Y VARIABLES POR TEMA
    ========================================================================== */
 
-/* --- Cyberpunk (Por defecto / Modo Oscuro Original) --- */
 :root, [data-theme="dark"] {
     --bg: #121212;
     --surface: #1e1e1e;
@@ -11,75 +10,69 @@
     --border: #2d2d2d;
     --msg-bg: #161616;
     --input-bg: #252525;
-    --fuente: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --fuente: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-/* --- Modo Ofimática (Camuflaje total estilo Excel) --- */
 [data-theme="office"] {
     --bg: #f3f2f1;
     --surface: #ffffff;
-    --text: #323130;
-    --accent: #107c41; /* Verde Microsoft */
-    --border: #edebe9;
+    --text: #000000;
+    --accent: #107c41; 
+    --border: #d2d2d2;
     --msg-bg: #ffffff;
     --input-bg: #ffffff;
-    --fuente: 'Segoe UI', Arial, Helvetica, sans-serif;
+    --fuente: 'Calibri', 'Segoe UI', Arial, sans-serif;
 }
 
-/* --- Modo Corporativo (Estilo Teams / Jira / Documentación) --- */
 [data-theme="corporate"] {
     --bg: #f4f5f7;
     --surface: #ffffff;
     --text: #172b4d;
-    --accent: #0052cc; /* Azul Atlassian */
+    --accent: #0052cc;
     --border: #dfe1e6;
     --msg-bg: #ffffff;
     --input-bg: #fafbfc;
     --fuente: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* --- Modo Terminal (Consola Bash / Vim) --- */
 [data-theme="terminal"] {
-    --bg: #0c0c0c;
-    --surface: #161616;
-    --text: #cccccc;
-    --accent: #00ff66; /* Verde fósforo */
+    --bg: #000000;
+    --surface: #000000;
+    --text: #00ff00;
+    --accent: #00ff00;
     --border: #333333;
-    --msg-bg: #0c0c0c;
-    --input-bg: #1a1a1a;
+    --msg-bg: #000000;
+    --input-bg: #000000;
     --fuente: 'Courier New', Courier, monospace;
 }
 
-/* --- Modo IDE / Editor (Estilo Visual Studio Code Dark+) --- */
 [data-theme="ide"] {
     --bg: #1e1e1e;
     --surface: #252526;
     --text: #d4d4d4;
-    --accent: #4fc1ff; /* Azul de variables */
+    --accent: #4fc1ff;
     --border: #3c3c3c;
     --msg-bg: #1e1e1e;
     --input-bg: #2d2d2d;
     --fuente: 'Consolas', 'Monaco', 'Courier New', monospace;
 }
 
-/* --- Modo GitHub Light (Camuflaje de Repositorio) --- */
 [data-theme="github"] {
     --bg: #ffffff;
     --surface: #f6f8fa;
     --text: #24292f;
-    --accent: #0969da; /* Azul GitHub */
+    --accent: #0969da;
     --border: #d0d7de;
     --msg-bg: #ffffff;
     --input-bg: #ffffff;
     --fuente: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
 }
 
-/* --- Modo Drácula (Estética Pura Dev) --- */
 [data-theme="dracula"] {
     --bg: #282a36;
     --surface: #44475a;
     --text: #f8f8f2;
-    --accent: #ff79c6; /* Rosa Drácula */
+    --accent: #ff79c6;
     --border: #6272a4;
     --msg-bg: #21222c;
     --input-bg: #282a36;
@@ -88,8 +81,20 @@
 
 
 /* ==========================================================================
-   2. REGLAS E ESTILOS BASE (Uso estricto de variables)
+   2. REGLAS BASE, SCROLLBARS Y LAYOUT COMPACTO
    ========================================================================== */
+
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+}
 
 body {
     background-color: var(--bg);
@@ -100,147 +105,274 @@ body {
     padding: 0;
 }
 
-/* Contenedor principal de los mensajes */
+/* Reducción de espaciados para un diseño más denso */
 #messages {
     flex: 1;
     overflow-y: auto;
     background-color: var(--msg-bg);
     border: 1px solid var(--border);
-    padding: 8px;
-    margin-bottom: 8px;
-    border-radius: 4px;
-    font-size: 0.85rem;
+    padding: 4px;
+    margin-bottom: 4px;
+    font-size: 0.8rem;
 }
 
-/* Inputs de texto y contraseñas */
 input {
     background-color: var(--input-bg);
     border: 1px solid var(--border);
     color: var(--text);
     font-family: var(--fuente);
-    padding: 6px 10px;
-    border-radius: 4px;
+    padding: 4px 8px;
+    border-radius: 2px;
     outline: none;
     box-sizing: border-box;
 }
 
-/* Botones genéricos */
 button {
     background-color: var(--accent);
     color: #ffffff;
     border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
+    padding: 4px 10px;
+    border-radius: 2px;
     font-weight: bold;
     cursor: pointer;
     font-family: var(--fuente);
 }
 
-button:hover {
-    opacity: 0.9;
-}
+button:hover { opacity: 0.9; }
 
-/* Selector flotante de temas (Esquina superior derecha) */
 #theme-select {
     background-color: var(--surface);
     color: var(--text);
     border: 1px solid var(--border);
     font-family: var(--fuente);
-    padding: 2px 6px;
-    font-size: 0.75rem;
-    border-radius: 4px;
+    padding: 1px 4px;
+    font-size: 0.7rem;
+    border-radius: 2px;
     cursor: pointer;
     outline: none;
 }
 
 
 /* ==========================================================================
-   3. MUTACIONES ESTRUCTURALES AVANZADAS
+   3. MUTACIONES ESTRUCTURALES EXTREMAS
    ========================================================================== */
 
-/* --- MUTACIÓN: MODO OFIMÁTICA (Clon de Hoja de Cálculo) --- */
+/* --- MODO OFIMÁTICA (Clon Estricto de Excel) --- */
+[data-theme="office"] #chat-container {
+    padding: 0;
+}
+
 [data-theme="office"] #messages {
     display: grid;
-    grid-template-columns: 80px 140px 1fr; /* Formato tabla: Hora | Usuario | Mensaje */
+    grid-template-columns: 50px 100px 1fr; 
     gap: 0;
     padding: 0;
-    background-color: #ffffff;
+    border: none;
+    border-top: 1px solid var(--border);
 }
 
 [data-theme="office"] .msg {
-    display: contents; /* Rompe el envoltorio div para inyectar los spans en el grid */
+    display: contents; 
 }
 
 [data-theme="office"] .msg > span {
-    padding: 3px 6px;
-    border: 1px solid #e1e1e1; /* Rejilla de Excel */
+    padding: 2px 4px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
     font-size: 0.75rem;
+    line-height: 1.2;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    color: #323130 !important;
+    color: var(--text) !important; 
 }
 
 [data-theme="office"] .msg > span:last-child {
-    white-space: normal; /* El texto del mensaje sí puede saltar de línea */
+    white-space: normal;
+    background-color: #ffffff;
 }
 
-[data-theme="office"] .msg span[style*="font-weight: bold"] {
-    font-weight: normal !important; /* Quitamos negritas del alias en el Excel */
+[data-theme="office"] .msg > span:first-child {
+    background-color: #f3f2f1;
+    text-align: center;
+    color: #666 !important;
 }
 
-/* --- MUTACIÓN: MODO CONSOLA / LOGS (Flujo continuo de sistema) --- */
-[data-theme="terminal"] .msg, 
-[data-theme="ide"] .msg {
+[data-theme="office"] #input-area button { 
+    display: none; 
+}
+
+[data-theme="office"] #input-area {
+    background: #ffffff;
+    border-top: 2px solid var(--accent);
+    padding: 2px;
     display: block;
-    margin-bottom: 2px;
-    line-height: 1.4;
 }
 
-[data-theme="terminal"] .msg .time, 
-[data-theme="ide"] .msg .time {
-    color: #666666 !important;
-    margin-right: 6px;
-}
-
-/* --- ADAPTACIONES DE CAMUFLAJE PARA INPUTS Y FORMULARIOS --- */
-
-/* Esconder botones de enviar en entornos donde delatan el chat */
-[data-theme="office"] #chat-container button,
-[data-theme="terminal"] #chat-container button,
-[data-theme="ide"] #chat-container button {
-    display: none;
-}
-
-/* El input de Excel pasa a ocupar todo el ancho simulando una barra de fórmulas */
 [data-theme="office"] #msg-input {
     width: 100%;
+    border: 1px solid var(--border);
     border-radius: 0;
-    border: 1px solid #abafb3;
-}
-[data-theme="office"] #msg-input::placeholder {
-    color: transparent;
+    padding: 2px 6px;
 }
 
-/* Añadir el Prompt "$_ " en el modo Terminal */
-[data-theme="terminal"] .chat-input-wrapper {
-    display: flex;
-    align-items: center;
-    background-color: #0c0c0c;
-    border: 1px solid #333333;
-    padding-left: 8px;
-    border-radius: 4px;
+[data-theme="office"] #msg-input::placeholder { 
+    color: transparent; 
 }
-[data-theme="terminal"] .chat-input-wrapper::before {
-    content: "$_";
-    color: var(--accent);
-    font-family: 'Courier New', monospace;
-    font-size: 0.9rem;
+
+
+/* --- MODO TERMINAL E IDE (Camuflaje de Consola y Logs) --- */
+[data-theme="terminal"] #messages,
+[data-theme="ide"] #messages {
+    border: none;
+    border-radius: 0;
+    padding: 8px;
+}
+
+[data-theme="terminal"] .msg,
+[data-theme="ide"] .msg {
+    display: block;
+    margin-bottom: 0;
+    line-height: 1.1;
+}
+
+[data-theme="terminal"] .msg span {
+    color: var(--text) !important;
+    font-weight: normal !important;
+}
+
+[data-theme="terminal"] .msg .time {
+    display: none; 
+}
+
+[data-theme="ide"] .msg .time {
+    color: #555555 !important;
     margin-right: 6px;
 }
-[data-theme="terminal"] #msg-input {
+
+/* Inyección directa sobre tu #input-area */
+[data-theme="terminal"] #input-area button,
+[data-theme="ide"] #input-area button { 
+    display: none; 
+}
+
+[data-theme="terminal"] #input-area {
+    background: transparent;
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+}
+
+[data-theme="terminal"] #input-area::before {
+    content: "root@server:~# ";
+    color: var(--accent);
+    font-family: monospace;
+    white-space: pre;
+    font-size: 0.8rem;
+}
+
+[data-theme="terminal"] #msg-input,
+[data-theme="ide"] #msg-input {
     border: none;
     background: transparent;
+    color: var(--text);
     width: 100%;
-    padding: 6px 0;
+    padding: 2px 0;
+    box-shadow: none;
+}
+
+[data-theme="ide"] #input-area {
+    border-top: 1px solid var(--border);
+    padding: 4px 8px;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ==========================================================================
+   4. LAYOUT GENERAL Y RESPONSIVE (PANTALLA COMPLETA MÓVIL)
+   ========================================================================== */
+/* Adaptaciones exclusivas para exprimir la pantalla en móviles */
+@media screen and (max-width: 768px) {
+    
+    /* Reseteo radical para matar el scroll del sistema operativo */
+    html, body {
+        height: 100%;
+        height: 100dvh; /* Se adapta dinámicamente si sale el teclado o la barra URL */
+        margin: 0;
+        padding: 0;
+        overflow: hidden; 
+    }
+
+    /* El chat pasa a ser una app nativa full-screen */
+    #login, #chat-container {
+        max-width: 100%;
+        height: 100%;
+        height: 100dvh;
+        margin: 0;
+        border-radius: 0;
+        border: none;
+    }
+
+    #messages {
+        padding: 4px;
+        border: none;
+        border-radius: 0;
+        margin-bottom: 0; /* Pegamos los mensajes directamente al input */
+    }
+
+    /* Prevenir el zoom automático en Safari/iOS al enfocar inputs */
+    input, select, #theme-select {
+        font-size: 16px !important; 
+    }
+
+    #theme-select {
+        top: 4px !important;
+        right: 4px !important;
+    }
+
+    /* --- Ajustes extremos por tema (Layout Compacto) --- */
+
+    [data-theme="office"] #messages {
+        grid-template-columns: 35px 65px 1fr; 
+    }
+    
+    [data-theme="office"] .msg > span {
+        font-size: 0.7rem; 
+        padding: 2px;
+    }
+
+    [data-theme="office"] .msg > span:last-child {
+        font-size: 0.8rem; 
+    }
+
+    [data-theme="terminal"] #input-area::before {
+        content: "~$ ";
+    }
+    
+    [data-theme="ide"] #messages, 
+    [data-theme="terminal"] #messages {
+        padding: 4px;
+    }
 }
