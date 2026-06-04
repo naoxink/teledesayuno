@@ -162,6 +162,8 @@
             // 1. Derivar clave criptográfica simétrica
             claveCriptografica = await generarClave(password, salaId);
 
+            miAlias = generarAliasAleatorio();
+
             // 2. Transición de UI
             document.getElementById('login').style.display = 'none';
             document.getElementById('chat-container').style.display = 'flex';
@@ -171,14 +173,18 @@
             const ably = new Ably.Realtime({ key: ABLY_KEY });
             canalGlobal = ably.channels.get(`sala-${salaId}`);
 
-            agregarMensajeSistema("Conectado de forma segura. El historial antiguo no existe.");
+            agregarMensajeSistema(`Has entrado a la sala. Tu alias temporal es: <strong style="color:var(--accent)">${miAlias}</strong>`);
 
             // Escuchar mensajes entrantes de Ably
             canalGlobal.subscribe('msg', async (item) => {
                 try {
                     // El payload viene en item.data
                     const textoDescifrado = await descifrarMensaje(item.data.msg, item.data.iv, claveCriptografica);
-                    agregarMensajePantalla(textoDescifrado);
+                    // Parseamos el JSON que viene de dentro del escudo criptográfico
+                    const datos = JSON.parse(textoDescifrado);
+                    
+                    // Pasamos el autor y el texto a la pantalla
+                    agregarMensajePantalla(datos.autor, datos.texto);
                 } catch (err) {
                     // Si falla el descifrado (error de integridad o clave incorrecta), ignoramos el mensaje en silencio
                     console.warn("Mensaje descartado: Clave incorrecta o manipulación de datos.");
@@ -193,17 +199,38 @@
 
             input.value = '';
 
+            // Creamos la estructura con el alias incluido
+            const paqueteDatos = {
+                autor: miAlias,
+                texto: texto
+            };
+
             // Ciframos localmente antes de enviar a la red
-            const payloadCifrado = await cifrarMensaje(texto, claveCriptografica);
+            const payloadCifrado = await cifrarMensaje(JSON.stringify(paqueteDatos), claveCriptografica);
             
             // Publicamos directamente al canal de Ably
             canalGlobal.publish('msg', payloadCifrado);
         }
 
-        function agregarMensajePantalla(texto) {
+        function agregarMensajePantalla(autor, texto) {
             const box = document.getElementById('messages');
             const hora = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            box.innerHTML += `<div class="msg"><span class="time">${hora}</span>${escaparHTML(texto)}</div>`;
+            
+            // Obtenemos el color único para este alias basándonos en su nombre
+            const colorAutor = obtenerColorPorAlias(autor);
+            
+            // Si quieres un pequeño indicador visual para tus propios mensajes, 
+            // podemos añadir un subrayado o un estilo extra opcional
+            const esMio = (autor === miAlias);
+            const estiloExtra = esMio ? 'text-decoration: underline; text-decoration-color: #555;' : '';
+
+            box.innerHTML += `
+                <div class="msg">
+                    <span class="time">${hora}</span>
+                    <span style="color: ${colorAutor}; font-weight: bold; ${estiloExtra}">[${escaparHTML(autor)}]:</span> 
+                    <span>${escaparHTML(texto)}</span>
+                </div>
+            `;
             box.scrollTop = box.scrollHeight;
         }
 
@@ -215,6 +242,33 @@
 
         function escaparHTML(str) {
             return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        const ANIMALES_Y_COSA = ["Nutria", "Mapache", "Calamar", "Capibara", "Croqueta", "Pangolín", "Chistorra", "Paloma", "Gatito"];
+        const ADJETIVOS = ["Espacial", "Ninja", "Radioactivo", "Sideral", "Táctico", "Cuántico", "Asesino", "Chulapo", "Anónimo"];
+
+        let miAlias = "";
+
+        function generarAliasAleatorio() {
+            const animal = ANIMALES_Y_COSA[Math.floor(Math.random() * ANIMALES_Y_COSA.length)];
+            const adjetivo = ADJETIVOS[Math.floor(Math.random() * ADJETIVOS.length)];
+            // Añadimos un número aleatorio corto para evitar colisiones si hay muchos conectados
+            const num = Math.floor(10 + Math.random() * 90); 
+            return `${animal} ${adjetivo} #${num}`;
+        }
+
+        function obtenerColorPorAlias(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                // Un algoritmo de hashing simple (djb2) para dispersar los caracteres
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            
+            // Forzamos a que el tono esté entre 0 y 360 grados
+            const hue = Math.abs(hash) % 360;
+            
+            // Retornamos HSL: 80% de saturación y 65% de brillo para que resalte en modo oscuro
+            return `hsl(${hue}, 80%, 65%)`;
         }
     </script>
 </body>
