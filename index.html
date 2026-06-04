@@ -7,13 +7,42 @@
     <!-- SDK de Ably para navegador -->
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
     <style>
-        :root {
+        /* ====== TEMAS VISUALES ====== */
+
+        /* 1. Cyberpunk (Tu oscuro original) */
+        :root, [data-theme="dark"] {
             --bg: #121212;
             --surface: #1e1e1e;
             --text: #e0e0e0;
             --accent: #00bcd4;
             --border: #2d2d2d;
+            --msg-bg: #161616;
+            --input-bg: #252525;
         }
+
+        /* 2. Modo Ofimática (Camuflaje total: clon de Excel/Word) */
+        [data-theme="office"] {
+            --bg: #f3f2f1;
+            --surface: #ffffff;
+            --text: #323130;
+            --accent: #107c41; /* Verde corporativo de Microsoft */
+            --border: #edebe9;
+            --msg-bg: #faf9f8;
+            --input-bg: #ffffff;
+        }
+
+        /* 3. Modo Corporativo (Estilo documentación técnica / Jira) */
+        [data-theme="corporate"] {
+            --bg: #f4f5f7;
+            --surface: #ffffff;
+            --text: #172b4d;
+            --accent: #0052cc; /* Azul Atlassian */
+            --border: #dfe1e6;
+            --msg-bg: #ffffff;
+            --input-bg: #fafbfc;
+        }
+
+        /* ====== REAJUSTES DE TU CSS EXISTENTE ====== */
         body {
             font-family: system-ui, -apple-system, sans-serif;
             background: var(--bg);
@@ -47,8 +76,9 @@
             flex-direction: column;
         }
         label { font-size: 0.8rem; margin-bottom: 4px; color: #888; }
+
         input, button {
-            background: #252525;
+            background: var(--input-bg); /* Antes estaba fijo en #252525 */
             border: 1px solid var(--border);
             color: var(--text);
             padding: 6px 10px;
@@ -68,7 +98,7 @@
             flex: 1;
             overflow-y: auto;
             border: 1px solid var(--border);
-            background: #161616;
+            background: var(--msg-bg); /* Antes estaba fijo en #161616 */
             padding: 8px;
             margin-bottom: 8px;
             border-radius: 4px;
@@ -82,6 +112,14 @@
     </style>
 </head>
 <body>
+
+    <div style="position: fixed; top: 8px; right: 8px; z-index: 999;">
+        <select id="theme-select" onchange="seleccionarTema(this.value)" style="background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 2px 6px; font-size: 0.75rem; border-radius: 4px; cursor: pointer; outline: none;">
+            <option value="dark">Cyberpunk (Oscuro)</option>
+            <option value="office">Ofimática (Excel/Claro)</option>
+            <option value="corporate">Corporativo (Gris)</option>
+        </select>
+    </div>
 
     <!-- ACCESO -->
     <div id="login">
@@ -142,6 +180,8 @@
                 
                 // Ponemos el cursor directamente en el campo de la contraseña
                 document.getElementById('password').focus();
+
+                document.getElementById('theme-select').value = localStorage.getItem('chat-theme') || 'dark';
             }
         });
 
@@ -352,18 +392,35 @@
             return `${animal} ${adjetivo}`;
         }
 
+        // 1. FUNCIÓN PARA CAMBIAR Y GUARDAR EL TEMA
+        function seleccionarTema(tema) {
+            // Aplicamos el atributo al nodo HTML principal
+            document.documentElement.setAttribute('data-theme', tema);
+            // Guardamos la preferencia
+            localStorage.setItem('chat-theme', tema);
+            
+            // Sincronizamos el valor del select por si acaso
+            const select = document.getElementById('theme-select');
+            if (select) select.value = tema;
+        }
+
+        // 2. APLICACIÓN INMEDIATA (Pon esto al principio de tu <script> para evitar el "chispazo" blanco/oscuro)
+        const temaGuardado = localStorage.getItem('chat-theme') || 'dark';
+        seleccionarTema(temaGuardado);
+
+        // 3. SELECCIÓN DE COLOR ADAPTATIVA (Sustituye tu función existente)
         function obtenerColorPorAlias(str) {
             let hash = 0;
             for (let i = 0; i < str.length; i++) {
-                // Un algoritmo de hashing simple (djb2) para dispersar los caracteres
                 hash = str.charCodeAt(i) + ((hash << 5) - hash);
             }
-            
-            // Forzamos a que el tono esté entre 0 y 360 grados
             const hue = Math.abs(hash) % 360;
             
-            // Retornamos HSL: 80% de saturación y 65% de brillo para que resalte en modo oscuro
-            return `hsl(${hue}, 80%, 65%)`;
+            // Si el tema actual es uno de los claros, bajamos el brillo al 35% para que el texto sea legible
+            const temaActual = localStorage.getItem('chat-theme') || 'dark';
+            const lightness = (temaActual === 'office' || temaActual === 'corporate') ? '35%' : '65%';
+            
+            return `hsl(${hue}, 75%, ${lightness})`;
         }
 
         function actualizarContador() {
