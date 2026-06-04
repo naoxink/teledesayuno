@@ -118,6 +118,9 @@
 
     <script>
 
+        let unreadCount = 0;
+        let tituloBase = "Teledesayuno"; // Título inicial por defecto
+
         document.addEventListener('DOMContentLoaded', () => {
             // Leemos el hash de la URL eliminando la '#' inicial
             const hash = window.location.hash.trim();
@@ -194,6 +197,7 @@
             if (window.Notification && Notification.permission === "default") {
                 Notification.requestPermission();
             }
+
             window.location.hash = encodeURIComponent(salaId);
 
             // 1. Derivar clave criptográfica simétrica
@@ -205,6 +209,9 @@
             document.getElementById('login').style.display = 'none';
             document.getElementById('chat-container').style.display = 'flex';
             document.getElementById('room-title').innerText = `#${salaId}`;
+
+            tituloBase = `Teledesayuno #${salaId}`;
+            document.title = tituloBase;
 
             // 1. Instanciamos Ably sin clientId global
             const ably = new Ably.Realtime({ key: ABLY_KEY });
@@ -259,12 +266,21 @@
                     // Pasamos el autor y el texto a la pantalla
                     agregarMensajePantalla(datos.autor, datos.texto);
 
-                    if (datos.autor !== miAlias && Notification.permission === "granted" && document.hidden) {
-                        new Notification(`#${salaId} - ${datos.autor}`, {
-                            body: datos.texto,
-                            tag: 'chat-notification', // Evita que se acumulen 40 globos en Windows/Mac; los mensajes nuevos reemplazan al anterior
-                            renotify: true // Hace que vuelva a vibrar/sonar aunque tenga el mismo tag
-                        });
+                    if (datos.autor !== miAlias && document.hidden) {
+                        // 1. Incrementamos el contador local
+                        unreadCount++;
+                        
+                        // 2. Modificamos el título de la pestaña: ej. "(3) #sala-ocio"
+                        document.title = `(${unreadCount}) ${tituloBase}`;
+
+                        // 3. Lanzamos la notificación nativa (tu código anterior)
+                        if (Notification.permission === "granted") {
+                            new Notification(`#${salaId} - ${datos.autor}`, {
+                                body: datos.texto,
+                                tag: 'chat-notification',
+                                renotify: true
+                            });
+                        }
                     }
                 } catch (err) {
                     // Si falla el descifrado (error de integridad o clave incorrecta), ignoramos el mensaje en silencio
@@ -361,6 +377,14 @@
                 document.getElementById('user-count').innerText = texto;
             });
         }
+
+        // Detecta si el usuario vuelve a mirar la pestaña
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                unreadCount = 0;
+                document.title = tituloBase;
+            }
+        });
     </script>
 </body>
 </html>
