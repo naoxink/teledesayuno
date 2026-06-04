@@ -90,9 +90,12 @@
             <label>ID de la Sala</label>
             <input type="text" id="room-id" placeholder="ej. sala-ocio">
         </div>
+
+        <div id="room-preview" style="display: none; font-weight: bold; font-size: 1.1rem; color: var(--accent); margin-bottom: 12px;"></div>
+
         <div class="form-group">
             <label>Contraseña de Cifrado</label>
-            <input type="password" id="password" placeholder="Clave secreta compartida">
+            <input type="password" id="password" placeholder="Clave secreta compartida" onkeypress="if (event.key === 'Enter') conectar()">
         </div>
         <button onclick="conectar()">Entrar</button>
     </div>
@@ -120,11 +123,16 @@
                 // decodeURIComponent limpia caracteres raros o espacios en la URL
                 const salaId = decodeURIComponent(hash.substring(1)).toLowerCase();
                 
-                // Rellenamos el input automáticamente
+                // Rellenamos el input invisible (sigue haciendo falta para la función conectar)
                 document.getElementById('room-id').value = salaId;
                 
-                // Ocultamos el grupo visualmente para que la UI quede limpia
+                // Ocultamos el input original
                 document.getElementById('room-group').style.display = 'none';
+                
+                // NUEVO: Activamos y pintamos el preview en azul/cyan
+                const preview = document.getElementById('room-preview');
+                preview.innerText = `#${salaId}`;
+                preview.style.display = 'block';
                 
                 // Ponemos el cursor directamente en el campo de la contraseña
                 document.getElementById('password').focus();
