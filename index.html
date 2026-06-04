@@ -103,7 +103,10 @@
     <!-- PANEL DEL CHAT -->
     <div id="chat-container">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <span id="room-title" style="font-weight:bold; font-size:0.9rem; color:var(--accent);"></span>
+            <div>
+                <span id="room-title" style="font-weight:bold; font-size:0.9rem; color:var(--accent);"></span>
+                <span id="user-count" style="font-size:0.8rem; color:#777; margin-left:8px;"></span>
+            </div>
             <span style="font-size:0.75rem; color:#555;">Cifrado de extremo a extremo • Efímero</span>
         </div>
         <div id="messages"></div>
@@ -200,11 +203,47 @@
             document.getElementById('chat-container').style.display = 'flex';
             document.getElementById('room-title').innerText = `#${salaId}`;
 
-            // 3. Inicializar Ably y suscribirse al canal de la sala
+            // 1. Instanciamos Ably sin clientId global
             const ably = new Ably.Realtime({ key: ABLY_KEY });
             canalGlobal = ably.channels.get(`sala-${salaId}`);
 
+            // 2. Traemos los usuarios conectados actuales antes de decidir nuestro alias
+            const miembrosActuales = await new Promise((resolve) => {
+                canalGlobal.presence.get((err, members) => resolve(members || []));
+            });
+
+            // 3. Generamos el alias base y comprobamos si ya está ocupado en la sala
+            const aliasBase = generarAliasAleatorio();
+            const estaRepetido = miembrosActuales.some(m => m.clientId === aliasBase);
+
+            if (estaRepetido) {
+                // Si ya hay un "Mapache Ninja" dentro, a nosotros nos añade el número
+                const num = Math.floor(10 + Math.random() * 90);
+                miAlias = `${aliasBase} #${num}`;
+            } else {
+                // Si la pista está libre, nos quedamos con el alias limpio
+                miAlias = aliasBase;
+            }
             agregarMensajeSistema(`Has entrado a la sala. Tu alias temporal es: <strong style="color:var(--accent)">${miAlias}</strong>`);
+
+            // MODIFICACIÓN 2: Escuchar quién entra y quién sale de la sala
+            // Cuando alguien entra:
+            canalGlobal.presence.subscribe('enter', (member) => {
+                if (member.clientId !== miAlias) {
+                    agregarMensajeSistema(`🟢 <strong>${escaparHTML(member.clientId)}</strong> se ha conectado.`);
+                }
+                actualizarContador();
+            });
+
+            // Cuando alguien se va (o cierra la pestaña):
+            canalGlobal.presence.subscribe('leave', (member) => {
+                agregarMensajeSistema(`🔴 <strong>${escaparHTML(member.clientId)}</strong> se ha desconectado.`);
+                actualizarContador();
+            });
+
+            // MODIFICACIÓN 3: Decirle a Ably que nos meta en la lista de presentes de la sala
+            canalGlobal.presence.enterClient(miAlias);
+            actualizarContador();
 
             // Escuchar mensajes entrantes de Ably
             canalGlobal.subscribe('msg', async (item) => {
@@ -283,9 +322,7 @@
         function generarAliasAleatorio() {
             const animal = ANIMALES_Y_COSA[Math.floor(Math.random() * ANIMALES_Y_COSA.length)];
             const adjetivo = ADJETIVOS[Math.floor(Math.random() * ADJETIVOS.length)];
-            // Añadimos un número aleatorio corto para evitar colisiones si hay muchos conectados
-            const num = Math.floor(10 + Math.random() * 90); 
-            return `${animal} ${adjetivo} #${num}`;
+            return `${animal} ${adjetivo}`;
         }
 
         function obtenerColorPorAlias(str) {
@@ -300,6 +337,18 @@
             
             // Retornamos HSL: 80% de saturación y 65% de brillo para que resalte en modo oscuro
             return `hsl(${hue}, 80%, 65%)`;
+        }
+
+        function actualizarContador() {
+            // Pedimos a Ably el array de miembros presentes en este canal
+            canalGlobal.presence.get((err, members) => {
+                if (err) return console.error("Error al obtener presencia:", err);
+                
+                const conectados = members.length;
+                const texto = `• ${conectados} conectado${conectados !== 1 ? 's' : ''}`;
+                
+                document.getElementById('user-count').innerText = texto;
+            });
         }
     </script>
 </body>
