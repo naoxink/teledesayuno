@@ -41,6 +41,55 @@
             --msg-bg: #ffffff;
             --input-bg: #fafbfc;
         }
+        /* 4. Modo Terminal (Camuflaje informático clásico) 
+        Si alguien pasa por detrás, parece que estás ejecutando un script en Bash o editando con Vim */
+        [data-theme="terminal"] {
+            --bg: #0c0c0c;
+            --surface: #161616;
+            --text: #cccccc;
+            --accent: #00ff66; /* Verde fósforo de consola */
+            --border: #333333;
+            --msg-bg: #0c0c0c;
+            --input-bg: #1a1a1a;
+            font-family: 'Courier New', Courier, monospace; /* Forzamos fuente mono aquí */
+        }
+
+        /* 5. Modo IDE / VS Code (El camuflaje definitivo para ti)
+        Imita los colores del tema 'Dark+' de Visual Studio Code. Parecerá que estás revisando un archivo de configuración */
+        [data-theme="ide"] {
+            --bg: #1e1e1e;
+            --surface: #252526;
+            --text: #d4d4d4;
+            --accent: #4fc1ff; /* Azul de variables de VS Code */
+            --border: #3c3c3c;
+            --msg-bg: #1e1e1e;
+            --input-bg: #2d2d2d;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        /* 6. Modo GitHub Light (Camuflaje de documentación)
+        Clona la paleta clara de GitHub. Parece que estás leyendo una Issue o revisando un Pull Request */
+        [data-theme="github"] {
+            --bg: #ffffff;
+            --surface: #f6h8fa;
+            --text: #24292f;
+            --accent: #0969da; /* Azul clásico de enlaces de GitHub */
+            --border: #d0d7de;
+            --msg-bg: #ffffff;
+            --input-bg: #ffffff;
+        }
+
+        /* 7. Modo Drácula (Estética pura)
+        Este no es para esconderse, es simplemente porque la paleta Dracula es obligatoria en cualquier herramienta de un dev */
+        [data-theme="dracula"] {
+            --bg: #282a36;
+            --surface: #44475a;
+            --text: #f8f8f2;
+            --accent: #ff79c6; /* Rosa Drácula */
+            --border: #6272a4;
+            --msg-bg: #21222c;
+            --input-bg: #282a36;
+        }
 
         /* ====== REAJUSTES DE TU CSS EXISTENTE ====== */
         body {
@@ -53,6 +102,7 @@
             flex-direction: column;
             height: 100vh;
             box-sizing: border-box;
+            transition: background-color 0.2s, color 0.2s; /* Para que el cambio de tema sea suave */
         }
         #login, #chat-container {
             background: var(--surface);
@@ -109,15 +159,29 @@
         .msg .system { color: #777; font-style: italic; font-size: 0.8rem; }
         #input-area { display: flex; gap: 4px; }
         #input-area input { flex: 1; }
+        #theme-select {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 2px 6px;
+            font-size: 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
+            outline: none;
+        }
     </style>
 </head>
 <body>
 
     <div style="position: fixed; top: 8px; right: 8px; z-index: 999;">
-        <select id="theme-select" onchange="seleccionarTema(this.value)" style="background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 2px 6px; font-size: 0.75rem; border-radius: 4px; cursor: pointer; outline: none;">
+        <select id="theme-select" onchange="seleccionarTema(this.value)">
             <option value="dark">Cyberpunk (Oscuro)</option>
-            <option value="office">Ofimática (Excel/Claro)</option>
-            <option value="corporate">Corporativo (Gris)</option>
+            <option value="office">Ofimática (Excel)</option>
+            <option value="corporate">Corporativo (Teams)</option>
+            <option value="terminal">Consola (Bash)</option>
+            <option value="ide">Editor (VS Code)</option>
+            <option value="github">GitHub (Claro)</option>
+            <option value="dracula">Dracula (Aesthetic)</option>
         </select>
     </div>
 
