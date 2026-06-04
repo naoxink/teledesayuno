@@ -86,7 +86,7 @@
     <!-- ACCESO -->
     <div id="login">
         <h4 style="margin: 0 0 12px 0; color: var(--accent);">Chat Privado P2P</h4>
-        <div class="form-group">
+        <div class="form-group" id="room-group">
             <label>ID de la Sala</label>
             <input type="text" id="room-id" placeholder="ej. sala-ocio">
         </div>
@@ -111,6 +111,27 @@
     </div>
 
     <script>
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Leemos el hash de la URL eliminando la '#' inicial
+            const hash = window.location.hash.trim();
+            
+            if (hash && hash.length > 1) {
+                // decodeURIComponent limpia caracteres raros o espacios en la URL
+                const salaId = decodeURIComponent(hash.substring(1)).toLowerCase();
+                
+                // Rellenamos el input automáticamente
+                document.getElementById('room-id').value = salaId;
+                
+                // Ocultamos el grupo visualmente para que la UI quede limpia
+                document.getElementById('room-group').style.display = 'none';
+                
+                // Ponemos el cursor directamente en el campo de la contraseña
+                document.getElementById('password').focus();
+            }
+        });
+
+
         const ABLY_KEY = 'HYoAwg.Z1gnlA:nNwRcynU1A-55wN9Wt7jnNBAGft-Izu1ONLs2RNzE54';
 
         const encoder = new TextEncoder();
@@ -158,6 +179,8 @@
             const password = document.getElementById('password').value;
 
             if (!salaId || !password) return alert("Introduce sala y contraseña.");
+
+            window.location.hash = encodeURIComponent(salaId);
 
             // 1. Derivar clave criptográfica simétrica
             claveCriptografica = await generarClave(password, salaId);
