@@ -119,7 +119,7 @@ body {
     border: 1px solid var(--border);
     padding: 4px;
     margin-bottom: 4px;
-    font-size: 0.8rem;
+    font-size: .9rem;
 }
 
 input {
