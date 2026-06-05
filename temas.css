@@ -179,12 +179,11 @@ button:hover { opacity: 0.9; }
 }
 
 [data-theme="terminal"] .msg span {
-    color: var(--text) !important;
     font-weight: normal !important;
 }
 
 [data-theme="terminal"] .msg .time {
-    display: none; 
+    color: var(--muted);
 }
 
 [data-theme="ide"] .msg .time {
