@@ -177,12 +177,12 @@
     <div style="position: fixed; top: 8px; right: 8px; z-index: 999;">
         <select id="theme-select" onchange="seleccionarTema(this.value)">
             <option value="dark">Cyberpunk (Oscuro)</option>
-            <option value="office">Ofimática (Excel)</option>
             <option value="corporate">Corporativo (Teams)</option>
             <option value="terminal">Consola (Bash)</option>
             <option value="ide">Editor (VS Code)</option>
             <option value="github">GitHub (Claro)</option>
             <option value="dracula">Dracula (Aesthetic)</option>
+            <option value="nxk">nxk (Oscuro)</option>
         </select>
     </div>
 
@@ -424,12 +424,11 @@
             // Si quieres un pequeño indicador visual para tus propios mensajes, 
             // podemos añadir un subrayado o un estilo extra opcional
             const esMio = (autor === miAlias);
-            const estiloExtra = esMio ? 'text-decoration: underline; text-decoration-color: #555;' : '';
 
             box.innerHTML += `
                 <div class="msg">
                     <span class="time">${hora}</span>
-                    <span style="color: ${colorAutor}; font-weight: bold; ${estiloExtra}">[${escaparHTML(autor)}]:</span> 
+                    <span class="user ${esMio ? 'own' : ''}" style="color: ${colorAutor}; font-weight: bold;">[${escaparHTML(autor)}]:</span> 
                     <span>${escaparHTML(texto)}</span>
                 </div>
             `;
@@ -440,6 +439,16 @@
             const box = document.getElementById('messages');
             box.innerHTML += `<div class="msg"><span class="system">${texto}</span></div>`;
             box.scrollTop = box.scrollHeight;
+        }
+
+        function agregarBarraSinLeer() {
+            const box = document.getElementById('messages');
+            box.innerHTML += `<div class="unread-bar">Mensajes sin leer</div>`;
+        }
+
+        function eliminarBarraSinLeer() {
+            const bar = document.querySelector('.unread-bar')
+            if (bar) bar.parentNode.removeChild(bar)
         }
 
         function escaparHTML(str) {
@@ -503,8 +512,12 @@
         // Detecta si el usuario vuelve a mirar la pestaña
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) {
+                if (unreadCount) setTimeout(() => eliminarBarraSinLeer(), 3000)
+                else eliminarBarraSinLeer()
                 unreadCount = 0;
                 document.title = tituloBase;
+            } else {
+                agregarBarraSinLeer()
             }
         });
     </script>
