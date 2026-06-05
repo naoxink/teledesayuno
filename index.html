@@ -221,6 +221,7 @@
 
     <script>
 
+        let tieneElFoco = true;
         let unreadCount = 0;
         let tituloBase = "Teledesayuno"; // Título inicial por defecto
 
@@ -367,14 +368,15 @@
                     const textoDescifrado = await descifrarMensaje(item.data.msg, item.data.iv, claveCriptografica);
                     // Parseamos el JSON que viene de dentro del escudo criptográfico
                     const datos = JSON.parse(textoDescifrado);
-                    
-                    // Pasamos el autor y el texto a la pantalla
-                    agregarMensajePantalla(datos.autor, datos.texto);
 
-                    if (datos.autor !== miAlias && document.hidden) {
+                    if (datos.autor !== miAlias && !tieneElFoco) {
                         // 1. Incrementamos el contador local
                         unreadCount++;
-                        
+
+                        if (unreadCount === 1) {
+                            agregarBarraSinLeer()
+                        }
+
                         // 2. Modificamos el título de la pestaña: ej. "(3) #sala-ocio"
                         document.title = `(${unreadCount}) ${tituloBase}`;
 
@@ -387,6 +389,9 @@
                             });
                         }
                     }
+
+                    // Pasamos el autor y el texto a la pantalla
+                    agregarMensajePantalla(datos.autor, datos.texto);
                 } catch (err) {
                     // Si falla el descifrado (error de integridad o clave incorrecta), ignoramos el mensaje en silencio
                     console.warn("Mensaje descartado: Clave incorrecta o manipulación de datos.");
@@ -509,16 +514,22 @@
             });
         }
 
-        // Detecta si el usuario vuelve a mirar la pestaña
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) {
-                if (unreadCount) setTimeout(() => eliminarBarraSinLeer(), 3000)
-                else eliminarBarraSinLeer()
-                unreadCount = 0;
-                document.title = tituloBase;
+        window.addEventListener('focus', () => {
+            tieneElFoco = true;
+            
+            // Limpiamos las alertas solo si teníamos mensajes pendientes
+            if (unreadCount > 0) {
+                setTimeout(() => eliminarBarraSinLeer(), 3000);
             } else {
-                agregarBarraSinLeer()
+                eliminarBarraSinLeer();
             }
+            
+            unreadCount = 0;
+            document.title = tituloBase; // Restaura el título original
+        });
+
+        window.addEventListener('blur', () => {
+            tieneElFoco = false;
         });
     </script>
 </body>
