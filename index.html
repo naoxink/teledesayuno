@@ -406,6 +406,12 @@
 
             input.value = '';
 
+            if (texto === '/clear') {
+                limpiarMensajesUsuario();
+                agregarMensajeSistema('Se han eliminado localmente todos los mensajes de usuarios.');
+                return;
+            }
+
             // Creamos la estructura con el alias incluido
             const paqueteDatos = {
                 autor: miAlias,
@@ -417,6 +423,22 @@
             
             // Publicamos directamente al canal de Ably
             canalGlobal.publish('msg', payloadCifrado);
+        }
+
+        function limpiarMensajesUsuario() {
+            const box = document.getElementById('messages');
+            const mensajes = Array.from(box.querySelectorAll('.msg'));
+
+            mensajes.forEach(msg => {
+                if (!msg.querySelector('.system')) {
+                    msg.remove();
+                }
+            });
+
+            eliminarBarraSinLeer();
+            unreadCount = 0;
+            document.title = tituloBase;
+            box.scrollTop = box.scrollHeight;
         }
 
         function agregarMensajePantalla(autor, texto) {
