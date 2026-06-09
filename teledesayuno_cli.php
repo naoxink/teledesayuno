@@ -1,4 +1,14 @@
 <?php
+
+
+
+
+
+define('MY_ALIAS', 'PHP_Dev');
+
+
+
+
 // ==========================================================================
 // 1. CONFIGURACIÓN, PARÁMETROS Y ESTILOS ANSI
 // ==========================================================================
@@ -18,7 +28,6 @@ register_shutdown_function(function() {
 define('ABLY_KEY', 'HYoAwg.Z1gnlA:nNwRcynU1A-55wN9Wt7jnNBAGft-Izu1ONLs2RNzE54');
 $sala = trim($argv[1]);
 define('CHANNEL_NAME', 'sala-' . $sala);
-define('MY_ALIAS', 'PHP_Dev');
 
 // Paleta de colores ANSI profesionales
 define('CLR_RESET',   "\33[0m");
@@ -66,7 +75,7 @@ while (true) {
     $char = fgetc(STDIN);
     if ($char !== false) {
         $ascii = ord($char);
-        
+
         if ($char === "\n" || $char === "\r") {
             echo "\n"; // Saltamos de línea al terminar
             break;
@@ -91,7 +100,7 @@ if (trim($passwordCorta) === "") {
 }
 
 // Derivación de clave PBKDF2
-$saltPHP = "salt-" . $sala; 
+$saltPHP = "salt-" . $sala;
 $claveDerivada = hash_pbkdf2("sha256", trim($passwordCorta), $saltPHP, 100000, 32, true);
 define('ENCRYPTION_KEY', $claveDerivada);
 define('AUTH_BASIC_TOKEN', 'Authorization: Basic ' . base64_encode(trim(ABLY_KEY)));
@@ -122,11 +131,27 @@ echo CLR_PROMPT . "> " . CLR_RESET;
 $bufferMensaje = "";
 $ultimoEvento = "";
 
+// Informar de la conexión
+mandarMensaje('¡' . MY_ALIAS . ' se ha conectado! ¡Cuidao!');
+
+// Capturamos el Ctrl + C (SIGINT)
+pcntl_async_signals(true);
+pcntl_signal(SIGINT, function() {
+    // 1. Enviamos el mensaje
+    mandarMensaje("¡" . MY_ALIAS . " se ha desconectado!");
+
+    // 2. Restauramos la terminal
+    shell_exec('stty sane');
+
+    // 3. Salimos formalmente
+    exit(0);
+});
+
 // ==========================================================================
 // 2. BUCLE PRINCIPAL (Asíncrono)
 // ==========================================================================
 while (true) {
-    
+
     if (feof($ablyStream)) {
         die("\n" . CLR_ERROR . "[ALERT] Conexión cerrada por el servidor remoto.\n" . CLR_RESET);
     }
@@ -134,12 +159,12 @@ while (true) {
     // --- LEER DATOS ENTRANTES DE ABLY (SSE) ---
     if ($linea = fgets($ablyStream)) {
         $lineaClean = trim($linea);
-        
+
         if (!empty($lineaClean)) {
             if (strpos($lineaClean, 'event: ') === 0) {
                 $ultimoEvento = substr($lineaClean, 7);
             }
-            
+
             if (strpos($lineaClean, 'data: ') === 0) {
                 $payloadRaw = substr($lineaClean, 6);
 
@@ -156,7 +181,7 @@ while (true) {
 
                         if ($clientId !== MY_ALIAS) {
                             if (!isset($msgData['data'])) {
-                                continue; 
+                                continue;
                             }
 
                             $dataContenido = $msgData['data'];
@@ -189,19 +214,19 @@ while (true) {
                                     $msgContent = json_decode($decrypted, true);
                                     $autor = $msgContent['autor'] ?? $clientId;
                                     $texto = $msgContent['texto'] ?? '';
-                                    
+
                                     $colorAutor = obtenerColorUsuario($autor);
 
                                     echo $timestamp . $colorAutor . "[" . $autor . "]" . CLR_RESET . " " . trim($texto) . "\n";
 
                                     // Incrementamos los mensajes sin leer para el título de la pestaña
                                     $mensajesSinLeer++;
-                                    
+
                                     // Actualizamos el título de la pestaña de la terminal de forma dinámica
                                     // \033]0; -> Indica inicio de cambio de título
                                     // \007    -> Indica fin del comando
                                     echo "\033]0;({$mensajesSinLeer}) 💬 Nuevos mensajes | {$tituloOriginal}\007";
-                                    
+
                                     // Mandamos también un leve destello/sonido por si el OS lo apoya
                                     echo "\a";
                                 }
@@ -209,7 +234,7 @@ while (true) {
                                 // Volvemos a pintar el prompt y lo que lleves escrito (que ahora controlas tú en el buffer)
                                 echo CLR_PROMPT . "> " . CLR_RESET . $bufferMensaje;
                         }
-                    } 
+                    }
                 }
             }
         }
@@ -218,7 +243,7 @@ while (true) {
 // --- LEER TECLADO LOCAL (CON REDIBUJADO ROBUSTO) ---
     $char = fgetc(STDIN);
     if ($char !== false) {
-        
+
         // En cuanto el usuario toca CUALQUIER tecla, asumimos que ya está mirando la terminal
         if ($mensajesSinLeer > 0) {
             $mensajesSinLeer = 0;
@@ -232,57 +257,23 @@ while (true) {
         if ($char === "\n" || $char === "\r") { // El usuario pulsa Enter
             $msgPlano = trim($bufferMensaje);
             if ($msgPlano !== "") {
-                
-                $estructuraChat = json_encode(["autor" => MY_ALIAS, "texto" => $msgPlano]);
 
-                $iv = openssl_random_pseudo_bytes(12);
-                $tag = "";
-                $ciphertext = openssl_encrypt($estructuraChat, 'aes-256-gcm', ENCRYPTION_KEY, OPENSSL_RAW_DATA, $iv, $tag);
-                
-                $payloadCifrado = [
-                    "iv" => base64_encode($iv),
-                    "msg" => base64_encode($ciphertext . $tag)
-                ];
+                $httpCode = mandarMensaje($msgPlano);
 
-                $urlPost = "https://rest.ably.io/channels/" . urlencode(CHANNEL_NAME) . "/messages";
-                $postData = json_encode([
-                    'name' => 'msg',
-                    'clientId' => MY_ALIAS,
-                    'data' => $payloadCifrado
-                ]);
-
-                $ch = curl_init($urlPost);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_POST, true);
-                curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
-                curl_setopt($ch, CURLOPT_HTTPHEADER, ["Content-Type: application/json", AUTH_BASIC_TOKEN, "User-Agent: PHP_Terminal_Chat"]);
-                
-                curl_exec($ch);
-                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                curl_close($ch);
-                
-                // --- INTERFAZ: RENDERIZADO DE MENSAJE PROPIO ---
-                echo "\r\33[2K"; // Limpiamos la línea de edición
-                $timestamp = CLR_TIME . "[" . date('H:i:s') . "] " . CLR_RESET;
-
-                if ($httpCode === 201) {
-                    echo $timestamp . CLR_TU . "[" . MY_ALIAS . "]" . CLR_RESET . " " . $msgPlano . "\n";
-                } else {
-                    echo $timestamp . CLR_ERROR . "[Error de envío HTTP " . $httpCode . "]\n" . CLR_RESET;
-                }
+                renderizarMensajePropio($httpCode, $msgPlano);
             } else {
                 echo "\r\33[2K";
             }
             $bufferMensaje = "";
             echo CLR_PROMPT . "> " . CLR_RESET;
-            
-        } elseif ($ascii === 127 || $ascii === 8) { 
+
+        } elseif ($ascii === 127 || $ascii === 8) {
             // Captura estándar de Backspace (ASCII 127 o 8)
             if (strlen($bufferMensaje) > 0) {
                 // Quitamos el último carácter del búfer interno
                 $bufferMensaje = substr($bufferMensaje, 0, -1);
-                
-                // EL TRUCO: En vez de mover el cursor con \b, borramos la línea entera 
+
+                // EL TRUCO: En vez de mover el cursor con \b, borramos la línea entera
                 // con comandos ANSI (\r\33[2K) y volvemos a pintar el prompt con el búfer actualizado.
                 echo "\r\33[2K" . CLR_PROMPT . "> " . CLR_RESET . $bufferMensaje;
             }
@@ -291,10 +282,52 @@ while (true) {
             // Evitamos meter caracteres de control huérfanos filtrando el ASCII
             if ($ascii >= 32) {
                 $bufferMensaje .= $char;
-                echo $char; 
+                echo $char;
             }
         }
     }
 
-    usleep(20000); 
+    usleep(20000);
+}
+
+function mandarMensaje($texto) {
+    $estructuraChat = json_encode(["autor" => MY_ALIAS, "texto" => $texto]);
+
+    $iv = openssl_random_pseudo_bytes(12);
+    $tag = "";
+    $ciphertext = openssl_encrypt($estructuraChat, 'aes-256-gcm', ENCRYPTION_KEY, OPENSSL_RAW_DATA, $iv, $tag);
+
+    $payloadCifrado = [
+        "iv" => base64_encode($iv),
+        "msg" => base64_encode($ciphertext . $tag)
+    ];
+
+    $urlPost = "https://rest.ably.io/channels/" . urlencode(CHANNEL_NAME) . "/messages";
+    $postData = json_encode([
+        'name' => 'msg',
+        'clientId' => MY_ALIAS,
+        'data' => $payloadCifrado
+    ]);
+
+    $ch = curl_init($urlPost);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ["Content-Type: application/json", AUTH_BASIC_TOKEN, "User-Agent: PHP_Terminal_Chat"]);
+
+    curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    return $httpCode;
+}
+
+function renderizarMensajePropio($httpCode, $texto) {
+    echo "\r\33[2K"; // Limpiamos la línea de edición
+    $timestamp = CLR_TIME . "[" . date('H:i:s') . "] " . CLR_RESET;
+
+    if ($httpCode === 201) {
+        echo $timestamp . CLR_TU . "[" . MY_ALIAS . "]" . CLR_RESET . " " . $texto . "\n";
+    } else {
+        echo $timestamp . CLR_ERROR . "[Error de envío HTTP " . $httpCode . "]\n" . CLR_RESET;
+    }
 }
