@@ -2,8 +2,8 @@
 // ==========================================================================
 // 1. CONFIGURACIÓN, PARÁMETROS Y ESTILOS ANSI
 // ==========================================================================
-if ($argc < 3) {
-    echo "\33[1;31m[ERROR]\33[0m Faltan parámetros.\nUso: php chat.php <canal> <contraseña>\n";
+if ($argc < 2) {
+    echo "\33[1;31m[ERROR]\33[0m Falta el parámetro de la sala.\nUso: php teledesayuno_cli.php <canal>\n";
     exit(1);
 }
 
@@ -15,7 +15,7 @@ register_shutdown_function(function() {
     shell_exec('stty sane');
 });
 
-define('ABLY_KEY', 'HYoAwg.Z1gnlA:nNwRcynU1A-55wN9Wt7jnNBAGft-Izu1ONLs2RNzE54'); 
+define('ABLY_KEY', 'HYoAwg.Z1gnlA:nNwRcynU1A-55wN9Wt7jnNBAGft-Izu1ONLs2RNzE54');
 $sala = trim($argv[1]);
 define('CHANNEL_NAME', 'sala-' . $sala);
 define('MY_ALIAS', 'PHP_Dev');
@@ -41,6 +41,14 @@ define('PALETA_COLORES', [
     "\33[1;31m"  // Rojo brillante (por si quieres dar emoción)
 ]);
 
+$mensajesSinLeer = 0;
+$bufferMensaje = "";
+$ultimoEvento = "";
+$tituloOriginal = "🔐 P2P Encrypted - #" . $sala;
+
+// Establecemos el título inicial de la pestaña de la terminal
+echo "\033]0;" . $tituloOriginal . "\007";
+
 // Función para asignar un color fijo y consistente según el nombre de usuario
 function obtenerColorUsuario($nombre) {
     // crc32 convierte el string en un número entero único basado en sus caracteres
@@ -50,9 +58,41 @@ function obtenerColorUsuario($nombre) {
     return PALETA_COLORES[$indice];
 }
 
+// --- SOLICITUD SEGURA DE CONTRASEÑA ---
+echo "\33[1;33mContraseña para la sala [" . $sala . "]: \33[0m";
+
+$passwordCorta = "";
+while (true) {
+    $char = fgetc(STDIN);
+    if ($char !== false) {
+        $ascii = ord($char);
+        
+        if ($char === "\n" || $char === "\r") {
+            echo "\n"; // Saltamos de línea al terminar
+            break;
+        } elseif ($ascii === 127 || $ascii === 8) { // Borrar
+            if (strlen($passwordCorta) > 0) {
+                $passwordCorta = substr($passwordCorta, 0, -1);
+                echo "\b \b"; // Borramos visualmente el asterisco
+            }
+        } else {
+            if ($ascii >= 32) {
+                $passwordCorta .= $char;
+                echo "*"; // Pintamos un asterisco en vez de la letra real
+            }
+        }
+    }
+    usleep(10000);
+}
+
+if (trim($passwordCorta) === "") {
+    echo "\33[1;31m[ERROR]\33[0m La contraseña no puede estar vacía.\n";
+    exit(1);
+}
+
 // Derivación de clave PBKDF2
 $saltPHP = "salt-" . $sala; 
-$claveDerivada = hash_pbkdf2("sha256", trim($argv[2]), $saltPHP, 100000, 32, true);
+$claveDerivada = hash_pbkdf2("sha256", trim($passwordCorta), $saltPHP, 100000, 32, true);
 define('ENCRYPTION_KEY', $claveDerivada);
 define('AUTH_BASIC_TOKEN', 'Authorization: Basic ' . base64_encode(trim(ABLY_KEY)));
 
@@ -153,6 +193,17 @@ while (true) {
                                     $colorAutor = obtenerColorUsuario($autor);
 
                                     echo $timestamp . $colorAutor . "[" . $autor . "]" . CLR_RESET . " " . trim($texto) . "\n";
+
+                                    // Incrementamos los mensajes sin leer para el título de la pestaña
+                                    $mensajesSinLeer++;
+                                    
+                                    // Actualizamos el título de la pestaña de la terminal de forma dinámica
+                                    // \033]0; -> Indica inicio de cambio de título
+                                    // \007    -> Indica fin del comando
+                                    echo "\033]0;({$mensajesSinLeer}) 💬 Nuevos mensajes | {$tituloOriginal}\007";
+                                    
+                                    // Mandamos también un leve destello/sonido por si el OS lo apoya
+                                    echo "\a";
                                 }
 
                                 // Volvemos a pintar el prompt y lo que lleves escrito (que ahora controlas tú en el buffer)
@@ -168,6 +219,13 @@ while (true) {
     $char = fgetc(STDIN);
     if ($char !== false) {
         
+        // En cuanto el usuario toca CUALQUIER tecla, asumimos que ya está mirando la terminal
+        if ($mensajesSinLeer > 0) {
+            $mensajesSinLeer = 0;
+            // Restauramos el título original sin el contador
+            echo "\033]0;" . $tituloOriginal . "\007";
+        }
+
         // Convertimos el carácter a su valor numérico ASCII para evitar fallos de codificación
         $ascii = ord($char);
 
