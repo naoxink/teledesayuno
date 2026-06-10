@@ -382,11 +382,16 @@
 
                         // 3. Lanzamos la notificación nativa (tu código anterior)
                         if (Notification.permission === "granted") {
-                            new Notification(`#${salaId} - ${datos.autor}`, {
+                            const notification = new Notification(`#${salaId} - ${datos.autor}`, {
                                 body: datos.texto,
                                 tag: 'chat-notification',
                                 renotify: true
                             });
+                            notification.onclick = () => {
+                                window.focus();
+                                document.querySelector('#msg-input').focus();
+                                notification.close();
+                            };
                         }
                     }
 
