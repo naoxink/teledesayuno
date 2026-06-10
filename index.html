@@ -252,13 +252,9 @@
         });
 
         function ejecutarComandoSiHay(texto) {
-            if (texto === '/clear') {
-                limpiarMensajesUsuario();
-                agregarMensajeSistema('Se han eliminado localmente todos los mensajes de usuarios.');
-                return false;
-            }
 
-            switch(texto) {
+            const cmd = texto.split(' ')[0].toLowerCase();
+            switch(cmd) {
                 case '/clear':
                     limpiarMensajesUsuario();
                     agregarMensajeSistema('Se han eliminado localmente todos los mensajes de usuarios.');
@@ -279,16 +275,16 @@
                     return false;
                 case '/shrug':
                     const emoticono = '¯\\_(ツ)_/¯';
-                    return `${emoticono} ${texto.replace('/shrug', '').trim()}`;
+                    return `${emoticono} ${texto.replace(cmd, '').trim()}`;
                 case '/lenny':
                     const lenny = '( ͡° ͜ʖ ͡°)';
-                    return `${lenny} ${texto.replace('/lenny', '').trim()}`;
+                    return `${lenny} ${texto.replace(cmd, '').trim()}`;
                 case '/tableflip':
                     const tableflip = '(╯°□°）╯︵ ┻━┻';
-                    return `${tableflip} ${texto.replace('/tableflip', '').trim()}`;
+                    return `${tableflip} ${texto.replace(cmd, '').trim()}`;
                 case '/unflip':
                     const unflip = '┬─┬ ノ( ゜-゜ノ)';
-                    return `${unflip} ${texto.replace('/unflip', '').trim()}`;
+                    return `${unflip} ${texto.replace(cmd, '').trim()}`;
                 case '/help':
                     const comandos = `
                         Comandos disponibles:
