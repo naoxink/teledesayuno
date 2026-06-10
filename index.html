@@ -251,6 +251,63 @@
             }
         });
 
+        function ejecutarComandoSiHay(texto) {
+            if (texto === '/clear') {
+                limpiarMensajesUsuario();
+                agregarMensajeSistema('Se han eliminado localmente todos los mensajes de usuarios.');
+                return false;
+            }
+
+            switch(texto) {
+                case '/clear':
+                    limpiarMensajesUsuario();
+                    agregarMensajeSistema('Se han eliminado localmente todos los mensajes de usuarios.');
+                    return false;
+                case '/theme':
+                    const nuevoTema = prompt('Introduce el nombre del tema (dark, office, corporate, terminal, ide, github, dracula):');
+                    if (nuevoTema) {
+                        seleccionarTema(nuevoTema);
+                        agregarMensajeSistema(`Tema cambiado a <strong>${nuevoTema}</strong>.`);
+                    }
+                    return false;
+                case '/alias':
+                    const nuevoAlias = prompt('Introduce tu nuevo alias:');
+                    if (nuevoAlias) {
+                        miAlias = nuevoAlias.trim().substring(0, 20); // Limitar a 20 caracteres
+                        agregarMensajeSistema(`Tu alias ha sido cambiado a <strong>${escaparHTML(miAlias)}</strong>.`);
+                    }
+                    return false;
+                case '/shrug':
+                    const emoticono = '¯\\_(ツ)_/¯';
+                    return `${emoticono} ${texto}`;
+                case '/lenny':
+                    const lenny = '( ͡° ͜ʖ ͡°)';
+                    return `${lenny} ${texto}`;
+                case '/tableflip':
+                    const tableflip = '(╯°□°）╯︵ ┻━┻';
+                    return `${tableflip} ${texto}`;
+                case '/unflip':
+                    const unflip = '┬─┬ ノ( ゜-゜ノ)';
+                    return `${unflip} ${texto}`;
+                case '/help':
+                    const comandos = `
+                        Comandos disponibles:
+                        /clear - Limpiar mensajes de usuarios localmente
+                        /theme - Cambiar tema visual
+                        /alias - Cambiar tu alias
+                        /shrug - Añadir emoticono ¯\\_(ツ)_/¯
+                        /lenny - Añadir emoticono ( ͡° ͜ʖ ͡°)
+                        /tableflip - Añadir emoticono (╯°□°）╯︵ ┻━┻
+                        /unflip - Añadir emoticono ┬─┬ ノ( ゜-゜ノ)
+                    `;
+                    alert(comandos);
+                    return false;
+            }
+
+            return texto;
+
+        }
+
 
         const ABLY_KEY = 'HYoAwg.Z1gnlA:nNwRcynU1A-55wN9Wt7jnNBAGft-Izu1ONLs2RNzE54';
 
@@ -411,16 +468,13 @@
 
             input.value = '';
 
-            if (texto === '/clear') {
-                limpiarMensajesUsuario();
-                agregarMensajeSistema('Se han eliminado localmente todos los mensajes de usuarios.');
-                return;
-            }
+            const comandoEjecutado = ejecutarComandoSiHay(texto);
+            if (!comandoEjecutado) return; // Si el texto era un comando y acaba aquí
 
             // Creamos la estructura con el alias incluido
             const paqueteDatos = {
                 autor: miAlias,
-                texto: texto
+                texto: comandoEjecutado
             };
 
             // Ciframos localmente antes de enviar a la red
