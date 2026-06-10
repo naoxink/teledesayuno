@@ -292,17 +292,14 @@
                     const unflip = '┬─┬ ノ( ゜-゜ノ)';
                     return `${unflip} ${texto.replace(cmd, '').trim()}`;
                 case '/help':
-                    const comandos = `
-                        Comandos disponibles:
-                        /clear - Limpiar mensajes de usuarios localmente
-                        /theme - Cambiar tema visual
-                        /alias - Cambiar tu alias
-                        /shrug - Añadir emoticono ¯\\_(ツ)_/¯
-                        /lenny - Añadir emoticono ( ͡° ͜ʖ ͡°)
-                        /tableflip - Añadir emoticono (╯°□°）╯︵ ┻━┻
-                        /unflip - Añadir emoticono ┬─┬ ノ( ゜-゜ノ)
-                    `;
-                    alert(comandos);
+                    agregarMensajeSistema('Mostrando comandos disponibles. También puedes escribir /help para ver esta lista de nuevo.');
+                    agregarMensajeSistema('- /clear - Limpiar mensajes de usuarios localmente');
+                    agregarMensajeSistema('- /theme - Cambiar tema visual');
+                    agregarMensajeSistema('- /alias - Cambiar tu alias');
+                    agregarMensajeSistema('- /shrug - Añadir emoticono ¯\\_(ツ)_/¯');
+                    agregarMensajeSistema('- /lenny - Añadir emoticono ( ͡° ͜ʖ ͡°)');
+                    agregarMensajeSistema('- /tableflip - Añadir emoticono (╯°□°）╯︵ �━┻');
+                    agregarMensajeSistema('- /unflip - Añadir emoticono ┬─┬ ノ( ゜-゜ノ)');
                     return false;
             }
 
