@@ -224,6 +224,7 @@
         let tieneElFoco = true;
         let unreadCount = 0;
         let tituloBase = "Teledesayuno"; // Título inicial por defecto
+        let miAlias = '';
 
         document.addEventListener('DOMContentLoaded', () => {
             // Leemos el hash de la URL eliminando la '#' inicial
@@ -267,7 +268,12 @@
                     }
                     return false;
                 case '/alias':
-                    const nuevoAlias = prompt('Introduce tu nuevo alias:');
+                    let nuevoAlias = '';
+                    if (texto.split(' ').length > 1) {
+                        nuevoAlias = texto.split(' ').slice(1).join(' ');
+                    } else {
+                        nuevoAlias = prompt('Introduce tu nuevo alias:');
+                    }
                     if (nuevoAlias) {
                         miAlias = nuevoAlias.trim().substring(0, 20); // Limitar a 20 caracteres
                         agregarMensajeSistema(`Tu alias ha sido cambiado a <strong>${escaparHTML(miAlias)}</strong>.`);
@@ -362,7 +368,9 @@
             // 1. Derivar clave criptográfica simétrica
             claveCriptografica = await generarClave(password, salaId);
 
-            miAlias = generarAliasAleatorio();
+            if (!miAlias) {
+                miAlias = generarAliasAleatorio();
+            }
 
             // 2. Transición de UI
             document.getElementById('login').style.display = 'none';
@@ -539,8 +547,6 @@
 
         const ANIMALES_Y_COSA = ["Nutria", "Mapache", "Calamar", "Capibara", "Croqueta", "Pangolín", "Chistorra", "Paloma", "Gatito", "Keyup", "Churro", "Miniboss", "Jefe", "Manta", "Regleta", "Tiburón martillo"];
         const ADJETIVOS = ["espacial", "ninja", "radioactivo", "sideral", "táctico", "cuántico", "asesino", "chulapo", "anónimo", "con retraso", "aburrido", "excelente"];
-
-        let miAlias = "";
 
         function generarAliasAleatorio() {
             const animal = ANIMALES_Y_COSA[Math.floor(Math.random() * ANIMALES_Y_COSA.length)];
