@@ -279,16 +279,16 @@
                     return false;
                 case '/shrug':
                     const emoticono = '¯\\_(ツ)_/¯';
-                    return `${emoticono} ${texto}`;
+                    return `${emoticono} ${texto.replace('/shrug', '').trim()}`;
                 case '/lenny':
                     const lenny = '( ͡° ͜ʖ ͡°)';
-                    return `${lenny} ${texto}`;
+                    return `${lenny} ${texto.replace('/lenny', '').trim()}`;
                 case '/tableflip':
                     const tableflip = '(╯°□°）╯︵ ┻━┻';
-                    return `${tableflip} ${texto}`;
+                    return `${tableflip} ${texto.replace('/tableflip', '').trim()}`;
                 case '/unflip':
                     const unflip = '┬─┬ ノ( ゜-゜ノ)';
-                    return `${unflip} ${texto}`;
+                    return `${unflip} ${texto.replace('/unflip', '').trim()}`;
                 case '/help':
                     const comandos = `
                         Comandos disponibles:
