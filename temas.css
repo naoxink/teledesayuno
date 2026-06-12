@@ -81,8 +81,9 @@
     --accent: #a5e906;
     --border: #587c04;
     --msg-bg: #191a15e5;
+    --msg-bg-hover: #292c1b;
     --input-bg: #0f100c;
-    --fuente: system-ui, sans-serif;
+    --fuente: 'Consolas', 'Monaco', 'Courier New', monospace;
     --muted: #666;
 }
 
@@ -232,6 +233,24 @@ button:hover { opacity: 0.9; }
     border-bottom: 1px solid var(--accent);
     background-color: var(--bg);
     margin-bottom: .2rem;
+}
+
+[data-theme="nxk"] input {
+    height: 2rem;
+}
+
+[data-theme="nxk"] .msg:hover {
+    background-color: var(--msg-bg-hover);
+}
+
+[data-theme="nxk"] .msg .system {
+    font-style: normal;
+}
+
+[data-theme="nxk"] .unread-bar {
+    background-color: var(--msg-bg-hover);
+    color: var(--accent);
+    padding: .2rem;
 }
 
 
