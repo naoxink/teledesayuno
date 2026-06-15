@@ -193,6 +193,9 @@
             color: var(--accent);
             font-weight: 700;
         }
+        .clickable { cursor: pointer; }
+        .mention.clickable:hover { text-decoration: underline; }
+        .user.clickable { cursor: pointer; }
         .msg.mention-target {
             background: rgba(0, 188, 212, 0.12);
             border-left: 3px solid var(--accent);
@@ -756,10 +759,23 @@
             box.innerHTML += `
                 <div class="${claseMensaje}">
                     <span class="time">${hora}</span>
-                    <span class="user ${esMio ? 'own' : ''}" style="color: ${colorAutor}; font-weight: bold;">[${escaparHTML(autor)}]:</span> 
+                    <span class="user ${esMio ? 'own' : ''} clickable" data-alias="${escaparHTML(autor)}" style="color: ${colorAutor}; font-weight: bold;">[${escaparHTML(autor)}]:</span> 
                     <span>${resaltarMenciones(texto)}</span>
                 </div>
             `;
+
+            // Vincular clicks en elementos .clickable del mensaje recién insertado
+            const nuevo = box.lastElementChild;
+            if (nuevo) {
+                nuevo.querySelectorAll('.clickable').forEach(el => {
+                    el.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                        const alias = el.dataset.alias;
+                        if (alias) insertarMention(alias);
+                    });
+                });
+            }
+
             box.scrollTop = box.scrollHeight;
         }
 
@@ -783,7 +799,7 @@
                 .join('|');
 
             const regex = new RegExp(`@(${patrones})(?=\\b)`, 'g');
-            return textoEscapado.replace(regex, '<span class="mention">@$1</span>');
+            return textoEscapado.replace(regex, '<span class="mention clickable" data-alias="$1">@$1</span>');
         }
 
         function agregarMensajeSistema(texto) {
