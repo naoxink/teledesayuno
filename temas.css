@@ -178,7 +178,6 @@ button:hover { opacity: 0.9; }
     display: block;
     margin-bottom: 0;
     line-height: 1.1;
-    padding: 1px;
 }
 
 [data-theme="terminal"] .msg span {

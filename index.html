@@ -157,8 +157,51 @@
         .msg { margin-bottom: 4px; line-height: 1.25; word-break: break-word; }
         .msg .time { color: #555; font-size: 0.75rem; margin-right: 6px; }
         .msg .system { color: #777; font-style: italic; font-size: 0.8rem; }
-        #input-area { display: flex; gap: 4px; }
+        #input-area { display: flex; gap: 4px; position: relative; }
         #input-area input { flex: 1; }
+        #mention-suggester {
+            position: absolute;
+            left: 0;
+            right: auto;
+            width: 100%;
+            top: auto;
+            bottom: calc(100% + 4px);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-shadow: 0 10px 20px rgba(0,0,0,.12);
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 20;
+            font-size: 0.9rem;
+        }
+        .mention-item {
+            padding: 8px 10px;
+            cursor: pointer;
+            color: var(--text);
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+        .mention-item:hover {
+            background: rgba(0, 0, 0, 0.08);
+        }
+        .mention-item.selected {
+            background: rgba(0, 188, 212, 0.2);
+            color: var(--accent);
+            font-weight: 700;
+        }
+        .mention {
+            color: var(--accent);
+            font-weight: 700;
+        }
+        .msg.mention-target {
+            background: rgba(0, 188, 212, 0.12);
+            border-left: 3px solid var(--accent);
+            padding-left: 9px;
+            margin-left: -9px;
+        }
+        .msg.mention-target .user {
+            color: var(--accent);
+        }
         #theme-select {
             background: var(--surface);
             color: var(--text);
@@ -215,6 +258,7 @@
         <div id="messages"></div>
         <div id="input-area" class="chat-input-wrapper">
             <input type="text" id="msg-input" placeholder="Mensaje seguro..." onkeypress="if(event.key==='Enter') enviar()">
+            <div id="mention-suggester" class="mention-suggester" hidden></div>
             <button onclick="enviar()">Enviar</button>
         </div>
     </div>
@@ -225,6 +269,10 @@
         let unreadCount = 0;
         let tituloBase = "Teledesayuno"; // Título inicial por defecto
         let miAlias = '';
+        let miembrosConectados = [];
+        let mentionIndex = -1;
+        let mentionMatches = [];
+        let mentionNavigationActive = false;
 
         document.addEventListener('DOMContentLoaded', () => {
             // Leemos el hash de la URL eliminando la '#' inicial
@@ -250,7 +298,120 @@
 
                 document.getElementById('theme-select').value = localStorage.getItem('chat-theme') || 'dark';
             }
+
+            const input = document.getElementById('msg-input');
+            input.addEventListener('input', handleMentionInput);
+            input.addEventListener('keydown', handleMentionKeydown);
         });
+
+        function actualizarMiembrosConectados(members) {
+            miembrosConectados = (members || [])
+                .map(member => member.clientId)
+                .filter(Boolean)
+                .filter(alias => alias !== miAlias);
+        }
+
+        function highlightMentionSuggester(index) {
+            const items = document.querySelectorAll('#mention-suggester .mention-item');
+            items.forEach((item, idx) => {
+                item.classList.toggle('selected', idx === index);
+            });
+        }
+
+        function renderMentionSuggester(matches) {
+            const box = document.getElementById('mention-suggester');
+            if (!matches || matches.length === 0) {
+                return esconderMentionSuggester();
+            }
+
+            box.innerHTML = matches.map((alias, idx) => {
+                return `<div class="mention-item${idx === mentionIndex ? ' selected' : ''}" data-alias="${escaparHTML(alias)}">${escaparHTML(alias)}</div>`;
+            }).join('');
+
+            box.hidden = false;
+            mentionNavigationActive = false;
+            highlightMentionSuggester(mentionIndex);
+
+            box.querySelectorAll('.mention-item').forEach(item => {
+                item.addEventListener('mousedown', (event) => {
+                    event.preventDefault();
+                    insertarMention(event.currentTarget.dataset.alias);
+                });
+            });
+        }
+
+        function esconderMentionSuggester() {
+            const box = document.getElementById('mention-suggester');
+            box.hidden = true;
+            box.innerHTML = '';
+            mentionMatches = [];
+            mentionIndex = -1;
+        }
+
+        function insertarMention(alias) {
+            const input = document.getElementById('msg-input');
+            const caret = input.selectionStart;
+            const before = input.value.slice(0, caret);
+            const after = input.value.slice(caret);
+            const match = before.match(/(?:^|\s)@([^\s@]*)$/);
+            if (!match) return esconderMentionSuggester();
+
+            const start = before.lastIndexOf('@');
+            const replacement = before.slice(0, start) + '@' + alias + ' ';
+            input.value = replacement + after;
+            const newPos = replacement.length;
+            input.focus();
+            input.setSelectionRange(newPos, newPos);
+            esconderMentionSuggester();
+        }
+
+        function handleMentionInput() {
+            const input = document.getElementById('msg-input');
+            const caret = input.selectionStart;
+            const before = input.value.slice(0, caret);
+            const match = before.match(/(?:^|\s)@([^\s@]*)$/);
+
+            if (!match) {
+                return esconderMentionSuggester();
+            }
+
+            const query = match[1].trim().toLowerCase();
+            mentionMatches = miembrosConectados
+                .filter(alias => alias.toLowerCase().includes(query))
+                .slice(0, 8);
+
+            if (mentionMatches.length === 0) {
+                return esconderMentionSuggester();
+            }
+
+            mentionIndex = 0;
+            mentionNavigationActive = false;
+            renderMentionSuggester(mentionMatches);
+        }
+
+        function handleMentionKeydown(event) {
+            const box = document.getElementById('mention-suggester');
+            if (box.hidden) return;
+
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                mentionNavigationActive = true;
+                mentionIndex = (mentionIndex + 1) % mentionMatches.length;
+                highlightMentionSuggester(mentionIndex);
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                mentionNavigationActive = true;
+                mentionIndex = (mentionIndex - 1 + mentionMatches.length) % mentionMatches.length;
+                highlightMentionSuggester(mentionIndex);
+            } else if (event.key === 'Enter') {
+                if (mentionNavigationActive && mentionMatches[mentionIndex]) {
+                    event.preventDefault();
+                    insertarMention(mentionMatches[mentionIndex]);
+                }
+            } else if (event.key === 'Escape') {
+                esconderMentionSuggester();
+            }
+        }
 
         function ejecutarComandoSiHay(texto) {
 
@@ -386,6 +547,8 @@
                 canalGlobal.presence.get((err, members) => resolve(members || []));
             });
 
+            actualizarMiembrosConectados(miembrosActuales);
+
             // 3. Generamos el alias base y comprobamos si ya está ocupado en la sala
             const aliasBase = generarAliasAleatorio();
             const estaRepetido = miembrosActuales.some(m => m.clientId === aliasBase);
@@ -405,6 +568,9 @@
             canalGlobal.presence.subscribe('enter', (member) => {
                 if (member.clientId !== miAlias) {
                     agregarMensajeSistema(`🟢 <strong>${escaparHTML(member.clientId)}</strong> se ha conectado.`);
+                    if (!miembrosConectados.includes(member.clientId)) {
+                        miembrosConectados.push(member.clientId);
+                    }
                 }
                 actualizarContador();
             });
@@ -412,6 +578,7 @@
             // Cuando alguien se va (o cierra la pestaña):
             canalGlobal.presence.subscribe('leave', (member) => {
                 agregarMensajeSistema(`🔴 <strong>${escaparHTML(member.clientId)}</strong> se ha desconectado.`);
+                miembrosConectados = miembrosConectados.filter(alias => alias !== member.clientId);
                 actualizarContador();
             });
 
@@ -508,18 +675,41 @@
             // Obtenemos el color único para este alias basándonos en su nombre
             const colorAutor = obtenerColorPorAlias(autor);
             
-            // Si quieres un pequeño indicador visual para tus propios mensajes, 
-            // podemos añadir un subrayado o un estilo extra opcional
             const esMio = (autor === miAlias);
+            const esMencionado = contieneMiMencion(texto);
+            const claseMensaje = esMencionado ? 'msg mention-target' : 'msg';
 
             box.innerHTML += `
-                <div class="msg">
+                <div class="${claseMensaje}">
                     <span class="time">${hora}</span>
                     <span class="user ${esMio ? 'own' : ''}" style="color: ${colorAutor}; font-weight: bold;">[${escaparHTML(autor)}]:</span> 
-                    <span>${escaparHTML(texto)}</span>
+                    <span>${resaltarMenciones(texto)}</span>
                 </div>
             `;
             box.scrollTop = box.scrollHeight;
+        }
+
+        function contieneMiMencion(texto) {
+            if (!miAlias) return false;
+            const aliasEscapado = miAlias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`@${aliasEscapado}(?=\\b)`, 'i');
+            return regex.test(texto);
+        }
+
+        function resaltarMenciones(texto) {
+            const textoEscapado = escaparHTML(texto);
+            const aliases = [...new Set([miAlias, ...miembrosConectados].filter(Boolean))];
+            if (aliases.length === 0) {
+                return textoEscapado;
+            }
+
+            const patrones = aliases
+                .sort((a, b) => b.length - a.length)
+                .map(alias => alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+                .join('|');
+
+            const regex = new RegExp(`@(${patrones})(?=\\b)`, 'g');
+            return textoEscapado.replace(regex, '<span class="mention">@$1</span>');
         }
 
         function agregarMensajeSistema(texto) {
