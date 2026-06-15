@@ -270,6 +270,7 @@
         let tituloBase = "Teledesayuno"; // Título inicial por defecto
         let miAlias = '';
         let miembrosConectados = [];
+        let aliasIgnorados = [];
         let mentionIndex = -1;
         let mentionMatches = [];
         let mentionNavigationActive = false;
@@ -308,7 +309,8 @@
             miembrosConectados = (members || [])
                 .map(member => member.clientId)
                 .filter(Boolean)
-                .filter(alias => alias !== miAlias);
+                .filter(alias => alias !== miAlias)
+                .filter(alias => !aliasIgnorados.includes(alias));
         }
 
         function highlightMentionSuggester(index) {
@@ -436,7 +438,30 @@
                         nuevoAlias = prompt('Introduce tu nuevo alias:');
                     }
                     if (nuevoAlias) {
-                        miAlias = nuevoAlias.trim().substring(0, 20); // Limitar a 20 caracteres
+                        const aliasAntiguo = miAlias;
+                        const aliasLimpio = nuevoAlias.trim().substring(0, 20);
+                        if (aliasLimpio && aliasLimpio !== miAlias) {
+                            miAlias = aliasLimpio;
+
+                            aliasIgnorados.push(aliasAntiguo);
+
+                            if (canalGlobal && aliasAntiguo) {
+                                try {
+                                    canalGlobal.presence.leaveClient(aliasAntiguo);
+                                } catch (err) {
+                                    console.warn('No se pudo salir del alias antiguo:', err);
+                                }
+                                canalGlobal.presence.enterClient(miAlias);
+
+                                canalGlobal.presence.get((err, members) => {
+                                    if (!err) {
+                                        actualizarMiembrosConectados(members);
+                                    }
+                                });
+                            }
+
+                            miembrosConectados = miembrosConectados.filter(alias => alias !== aliasAntiguo);
+                        }
                         agregarMensajeSistema(`Tu alias ha sido cambiado a <strong>${escaparHTML(miAlias)}</strong>.`);
                     }
                     return false;
