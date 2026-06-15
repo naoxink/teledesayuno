@@ -46,6 +46,7 @@
     --border: #3c3c3c;
     --msg-bg: #1e1e1e;
     --input-bg: #2d2d2d;
+    --msg-bg-hover: #3c3c3c;
     --fuente: 'Consolas', 'Monaco', 'Courier New', monospace;
     --muted: #666;
 }
@@ -177,6 +178,7 @@ button:hover { opacity: 0.9; }
     display: block;
     margin-bottom: 0;
     line-height: 1.1;
+    padding: 1px;
 }
 
 [data-theme="terminal"] .msg span {
@@ -239,7 +241,8 @@ button:hover { opacity: 0.9; }
     height: 2rem;
 }
 
-[data-theme="nxk"] .msg:hover {
+[data-theme="nxk"] .msg:hover,
+[data-theme="ide"] .msg:hover {
     background-color: var(--msg-bg-hover);
 }
 
@@ -251,6 +254,10 @@ button:hover { opacity: 0.9; }
     background-color: var(--msg-bg-hover);
     color: var(--accent);
     padding: .2rem;
+}
+
+[data-theme="ide"] .unread-bar {
+    color: var(--accent);
 }
 
 
