@@ -270,7 +270,7 @@
         let tituloBase = "Teledesayuno"; // Título inicial por defecto
         let miAlias = '';
         let miembrosConectados = [];
-        let aliasIgnorados = [];
+        let aliasChangesPendientes = [];
         let mentionIndex = -1;
         let mentionMatches = [];
         let mentionNavigationActive = false;
@@ -309,8 +309,22 @@
             miembrosConectados = (members || [])
                 .map(member => member.clientId)
                 .filter(Boolean)
-                .filter(alias => alias !== miAlias)
-                .filter(alias => !aliasIgnorados.includes(alias));
+                .filter(alias => alias !== miAlias);
+        }
+
+        function registrarCambioAlias(oldAlias, newAlias) {
+            aliasChangesPendientes = aliasChangesPendientes
+                .filter(item => Date.now() - item.ts < 5000);
+            aliasChangesPendientes.push({ oldAlias, newAlias, ts: Date.now() });
+        }
+
+        function procesarEventoCambioAlias(tipo, alias) {
+            aliasChangesPendientes = aliasChangesPendientes
+                .filter(item => Date.now() - item.ts < 5000);
+            return aliasChangesPendientes.find(item =>
+                (tipo === 'leave' && alias === item.oldAlias) ||
+                (tipo === 'enter' && alias === item.newAlias)
+            ) || null;
         }
 
         function highlightMentionSuggester(index) {
@@ -442,27 +456,8 @@
                         const aliasLimpio = nuevoAlias.trim().substring(0, 20);
                         if (aliasLimpio && aliasLimpio !== miAlias) {
                             miAlias = aliasLimpio;
-
-                            aliasIgnorados.push(aliasAntiguo);
-
-                            if (canalGlobal && aliasAntiguo) {
-                                try {
-                                    canalGlobal.presence.leaveClient(aliasAntiguo);
-                                } catch (err) {
-                                    console.warn('No se pudo salir del alias antiguo:', err);
-                                }
-                                canalGlobal.presence.enterClient(miAlias);
-
-                                canalGlobal.presence.get((err, members) => {
-                                    if (!err) {
-                                        actualizarMiembrosConectados(members);
-                                    }
-                                });
-                            }
-
-                            miembrosConectados = miembrosConectados.filter(alias => alias !== aliasAntiguo);
+                            return { tipo: 'alias-change', aliasAntiguo, aliasNuevo: miAlias };
                         }
-                        agregarMensajeSistema(`Tu alias ha sido cambiado a <strong>${escaparHTML(miAlias)}</strong>.`);
                     }
                     return false;
                 case '/shrug':
@@ -591,6 +586,14 @@
             // MODIFICACIÓN 2: Escuchar quién entra y quién sale de la sala
             // Cuando alguien entra:
             canalGlobal.presence.subscribe('enter', (member) => {
+                const cambio = procesarEventoCambioAlias('enter', member.clientId);
+                if (cambio) {
+                    if (!miembrosConectados.includes(member.clientId)) {
+                        miembrosConectados.push(member.clientId);
+                    }
+                    actualizarContador();
+                    return;
+                }
                 if (member.clientId !== miAlias) {
                     agregarMensajeSistema(`🟢 <strong>${escaparHTML(member.clientId)}</strong> se ha conectado.`);
                     if (!miembrosConectados.includes(member.clientId)) {
@@ -602,6 +605,12 @@
 
             // Cuando alguien se va (o cierra la pestaña):
             canalGlobal.presence.subscribe('leave', (member) => {
+                const cambio = procesarEventoCambioAlias('leave', member.clientId);
+                if (cambio) {
+                    miembrosConectados = miembrosConectados.filter(alias => alias !== member.clientId);
+                    actualizarContador();
+                    return;
+                }
                 agregarMensajeSistema(`🔴 <strong>${escaparHTML(member.clientId)}</strong> se ha desconectado.`);
                 miembrosConectados = miembrosConectados.filter(alias => alias !== member.clientId);
                 actualizarContador();
@@ -618,6 +627,12 @@
                     const textoDescifrado = await descifrarMensaje(item.data.msg, item.data.iv, claveCriptografica);
                     // Parseamos el JSON que viene de dentro del escudo criptográfico
                     const datos = JSON.parse(textoDescifrado);
+
+                    if (datos.tipo === 'alias-change') {
+                        agregarMensajeSistema(`🔁 El alias <strong>${escaparHTML(datos.aliasAntiguo)}</strong> ha cambiado a <strong>${escaparHTML(datos.aliasNuevo)}</strong>.`);
+                        registrarCambioAlias(datos.aliasAntiguo, datos.aliasNuevo);
+                        return;
+                    }
 
                     if (datos.autor !== miAlias && !tieneElFoco) {
                         // 1. Incrementamos el contador local
@@ -664,6 +679,11 @@
             const comandoEjecutado = ejecutarComandoSiHay(texto);
             if (!comandoEjecutado) return; // Si el texto era un comando y acaba aquí
 
+            if (typeof comandoEjecutado === 'object' && comandoEjecutado.tipo === 'alias-change') {
+                await manejarCambioAlias(comandoEjecutado.aliasAntiguo, comandoEjecutado.aliasNuevo);
+                return;
+            }
+
             // Creamos la estructura con el alias incluido
             const paqueteDatos = {
                 autor: miAlias,
@@ -675,6 +695,35 @@
             
             // Publicamos directamente al canal de Ably
             canalGlobal.publish('msg', payloadCifrado);
+        }
+
+        async function manejarCambioAlias(aliasAntiguo, aliasNuevo) {
+            registrarCambioAlias(aliasAntiguo, aliasNuevo);
+
+            if (canalGlobal) {
+                const paqueteCambio = {
+                    autor: aliasNuevo,
+                    tipo: 'alias-change',
+                    aliasAntiguo,
+                    aliasNuevo
+                };
+
+                const payloadCifrado = await cifrarMensaje(JSON.stringify(paqueteCambio), claveCriptografica);
+                canalGlobal.publish('msg', payloadCifrado);
+
+                try {
+                    canalGlobal.presence.leaveClient(aliasAntiguo);
+                } catch (err) {
+                    console.warn('No se pudo salir del alias antiguo:', err);
+                }
+                canalGlobal.presence.enterClient(aliasNuevo);
+
+                canalGlobal.presence.get((err, members) => {
+                    if (!err) {
+                        actualizarMiembrosConectados(members);
+                    }
+                });
+            }
         }
 
         function limpiarMensajesUsuario() {
