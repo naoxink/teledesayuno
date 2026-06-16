@@ -461,14 +461,22 @@
             const before = input.value.slice(0, caret);
             const after = input.value.slice(caret);
             const match = before.match(/(?:^|\s)@([^\s@]*)$/);
-            if (!match) return esconderMentionSuggester();
-
-            const start = before.lastIndexOf('@');
-            const replacement = before.slice(0, start) + '@' + alias + ' ';
-            input.value = replacement + after;
-            const newPos = replacement.length;
-            input.focus();
-            input.setSelectionRange(newPos, newPos);
+            
+            if (match) {
+                // Estamos escribiendo una mención: reemplazarla
+                const start = before.lastIndexOf('@');
+                const replacement = before.slice(0, start) + '@' + alias + ' ';
+                input.value = replacement + after;
+                const newPos = replacement.length;
+                input.focus();
+                input.setSelectionRange(newPos, newPos);
+            } else {
+                // No estamos en una mención, añadir al final
+                const newValue = input.value.trim() + (input.value.trim() ? ' ' : '') + '@' + alias + ' ';
+                input.value = newValue;
+                input.focus();
+                input.setSelectionRange(newValue.length, newValue.length);
+            }
             esconderMentionSuggester();
         }
 
@@ -483,9 +491,15 @@
             }
 
             const query = match[1].trim().toLowerCase();
-            mentionMatches = miembrosConectados
-                .filter(alias => alias.toLowerCase().includes(query))
-                .slice(0, 8);
+            let sugerencias = miembrosConectados
+                .filter(alias => alias.toLowerCase().includes(query));
+
+            // Añadir @room si coincide con la búsqueda
+            if ('room'.includes(query)) {
+                sugerencias.unshift('room');
+            }
+
+            mentionMatches = sugerencias.slice(0, 8);
 
             if (mentionMatches.length === 0) {
                 return esconderMentionSuggester();
@@ -905,6 +919,8 @@
 
         function contieneMiMencion(texto) {
             if (!miAlias) return false;
+            // @room siempre menciona al usuario
+            if (/@room\b/i.test(texto)) return true;
             const aliasEscapado = miAlias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const regex = new RegExp(`@${aliasEscapado}(?=\\b)`, 'i');
             return regex.test(texto);
@@ -913,8 +929,12 @@
         function resaltarMenciones(texto) {
             const textoEscapado = escaparHTML(texto);
             const aliases = [...new Set([miAlias, ...miembrosConectados].filter(Boolean))];
+            
+            // Primero reemplazamos @room
+            let resultado = textoEscapado.replace(/@room\b/g, '<span class="mention clickable" data-alias="room">@room</span>');
+            
             if (aliases.length === 0) {
-                return textoEscapado;
+                return resultado;
             }
 
             const patrones = aliases
@@ -923,7 +943,7 @@
                 .join('|');
 
             const regex = new RegExp(`@(${patrones})(?=\\b)`, 'g');
-            return textoEscapado.replace(regex, '<span class="mention clickable" data-alias="$1">@$1</span>');
+            return resultado.replace(regex, '<span class="mention clickable" data-alias="$1">@$1</span>');
         }
 
         function agregarMensajeSistema(texto) {
