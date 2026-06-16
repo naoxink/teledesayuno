@@ -157,6 +157,80 @@
         .msg { margin-bottom: 4px; line-height: 1.25; word-break: break-word; }
         .msg .time { color: #555; font-size: 0.75rem; margin-right: 6px; }
         .msg .system { color: #777; font-style: italic; font-size: 0.8rem; }
+        .reply-preview {
+            display: none;
+            border: 1px solid var(--accent);
+            background: rgba(0,188,212,0.08);
+            color: var(--text);
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            width: auto;
+            max-width: calc(100% - 24px);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .reply-preview.visible {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .reply-preview strong { color: var(--accent); }
+        .reply-preview .close-reply {
+            cursor: pointer;
+            color: var(--accent);
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .reply-info {
+            display: inline;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            opacity: 0.9;
+        }
+        .msg.replying {
+            background: rgba(0,188,212,0.08);
+            border: 1px solid rgba(0,188,212,0.35);
+        }
+        .reply-block {
+            border-left: 3px solid var(--accent);
+            padding-left: 10px;
+            margin-bottom: 6px;
+            opacity: 0.92;
+            font-size: 0.88rem;
+            color: #cfd8dc;
+        }
+        .reply-block .reply-author {
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+        .reply-block .reply-text {
+            white-space: pre-wrap;
+        }
+        .reply-button {
+            background: transparent;
+            border: none;
+            color: var(--text);
+            opacity: 0.55;
+            cursor: pointer;
+            padding: 0 4px;
+            margin-left: 4px;
+            font-size: 0.76rem;
+            transition: opacity 0.15s ease, color 0.15s ease;
+        }
+        .reply-button:hover,
+        .reply-button:focus {
+            color: var(--accent);
+            opacity: 0.9;
+            text-decoration: none;
+        }
+        .msg:hover .reply-button {
+            opacity: 0.85;
+        }
         #input-area { display: flex; gap: 4px; position: relative; }
         #input-area input { flex: 1; }
         #mention-suggester {
@@ -259,6 +333,7 @@
             <span style="font-size:0.75rem; color:#555;">Cifrado de extremo a extremo • Efímero</span>
         </div>
         <div id="messages"></div>
+        <div id="reply-preview" class="reply-preview" hidden></div>
         <div id="input-area" class="chat-input-wrapper">
             <input type="text" id="msg-input" placeholder="Mensaje seguro..." onkeypress="if(event.key==='Enter') enviar()">
             <div id="mention-suggester" class="mention-suggester" hidden></div>
@@ -277,6 +352,8 @@
         let mentionIndex = -1;
         let mentionMatches = [];
         let mentionNavigationActive = false;
+        let replyTarget = null;
+        const mensajesPorId = {};
 
         document.addEventListener('DOMContentLoaded', () => {
             // Leemos el hash de la URL eliminando la '#' inicial
@@ -306,6 +383,17 @@
             const input = document.getElementById('msg-input');
             input.addEventListener('input', handleMentionInput);
             input.addEventListener('keydown', handleMentionKeydown);
+
+            const messagesBox = document.getElementById('messages');
+            messagesBox.addEventListener('click', (event) => {
+                const button = event.target.closest('.reply-button');
+                if (!button) return;
+                const id = button.dataset.msgId;
+                if (!id) return;
+                const original = mensajesPorId[id];
+                if (!original) return;
+                establecerReplyTarget({ id: original.id, autor: original.autor, texto: original.texto });
+            });
         });
 
         function actualizarMiembrosConectados(members) {
@@ -664,7 +752,7 @@
                     }
 
                     // Pasamos el autor y el texto a la pantalla
-                    agregarMensajePantalla(datos.autor, datos.texto);
+                    agregarMensajePantalla(datos.autor, datos.texto, datos.replyTo ?? null, datos.id ?? null);
                 } catch (err) {
                     // Si falla el descifrado (error de integridad o clave incorrecta), ignoramos el mensaje en silencio
                     console.warn("Mensaje descartado: Clave incorrecta o manipulación de datos.");
@@ -680,24 +768,41 @@
             input.value = '';
 
             const comandoEjecutado = ejecutarComandoSiHay(texto);
-            if (!comandoEjecutado) return; // Si el texto era un comando y acaba aquí
+            if (!comandoEjecutado) {
+                if (replyTarget) cancelarReply();
+                return;
+            }
 
             if (typeof comandoEjecutado === 'object' && comandoEjecutado.tipo === 'alias-change') {
+                if (replyTarget) cancelarReply();
                 await manejarCambioAlias(comandoEjecutado.aliasAntiguo, comandoEjecutado.aliasNuevo);
                 return;
             }
 
-            // Creamos la estructura con el alias incluido
+            const messageId = generarIdMensaje();
             const paqueteDatos = {
+                id: messageId,
                 autor: miAlias,
                 texto: comandoEjecutado
             };
+
+            if (replyTarget) {
+                paqueteDatos.replyTo = {
+                    id: replyTarget.id,
+                    autor: replyTarget.autor,
+                    texto: replyTarget.texto
+                };
+            }
 
             // Ciframos localmente antes de enviar a la red
             const payloadCifrado = await cifrarMensaje(JSON.stringify(paqueteDatos), claveCriptografica);
             
             // Publicamos directamente al canal de Ably
             canalGlobal.publish('msg', payloadCifrado);
+
+            if (replyTarget) {
+                cancelarReply();
+            }
         }
 
         async function manejarCambioAlias(aliasAntiguo, aliasNuevo) {
@@ -745,26 +850,34 @@
             box.scrollTop = box.scrollHeight;
         }
 
-        function agregarMensajePantalla(autor, texto) {
+        function agregarMensajePantalla(autor, texto, replyTo = null, messageId = null) {
             const box = document.getElementById('messages');
             const hora = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            
-            // Obtenemos el color único para este alias basándonos en su nombre
+
+            if (messageId) {
+                mensajesPorId[messageId] = { id: messageId, autor, texto, replyTo };
+            }
+
             const colorAutor = obtenerColorPorAlias(autor);
-            
             const esMio = (autor === miAlias);
             const esMencionado = contieneMiMencion(texto);
             const claseMensaje = esMencionado ? 'msg mention-target' : 'msg';
+            const replyHtml = replyTo ? `
+                <div class="reply-block">
+                    <span class="reply-author">En respuesta a ${escaparHTML(replyTo.autor)}:</span>
+                    <span class="reply-text">${escaparHTML(replyTo.texto)}</span>
+                </div>` : '';
 
             box.innerHTML += `
-                <div class="${claseMensaje}">
+                <div class="${claseMensaje}" data-msg-id="${escaparHTML(messageId || '')}">
+                    ${replyHtml}
                     <span class="time">${hora}</span>
-                    <span class="user ${esMio ? 'own' : ''} clickable" data-alias="${escaparHTML(autor)}" style="color: ${colorAutor}; font-weight: bold;">[${escaparHTML(autor)}]:</span> 
+                    ${messageId ? `<button type="button" class="reply-button" title="Responder" data-msg-id="${escaparHTML(messageId)}">Resp</button>` : ''}
+                    <span class="user ${esMio ? 'own' : ''} clickable" data-alias="${escaparHTML(autor)}" style="color: ${colorAutor}; font-weight: bold;">[${escaparHTML(autor)}]:</span>
                     <span>${resaltarMenciones(texto)}</span>
                 </div>
             `;
 
-            // Vincular clicks en elementos .clickable del mensaje recién insertado
             const nuevo = box.lastElementChild;
             if (nuevo) {
                 nuevo.querySelectorAll('.clickable').forEach(el => {
@@ -772,6 +885,17 @@
                         e.preventDefault();
                         const alias = el.dataset.alias;
                         if (alias) insertarMention(alias);
+                    });
+                });
+
+                nuevo.querySelectorAll('.reply-button').forEach(el => {
+                    el.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const id = el.dataset.msgId;
+                        if (!id) return;
+                        const original = mensajesPorId[id];
+                        if (!original) return;
+                        establecerReplyTarget({ id: original.id, autor: original.autor, texto: original.texto });
                     });
                 });
             }
@@ -806,6 +930,44 @@
             const box = document.getElementById('messages');
             box.innerHTML += `<div class="msg"><span class="system">${texto}</span></div>`;
             box.scrollTop = box.scrollHeight;
+        }
+
+        function establecerReplyTarget(target) {
+            if (replyTarget && replyTarget.id) {
+                const prev = document.querySelector(`.msg[data-msg-id="${replyTarget.id}"]`);
+                if (prev) prev.classList.remove('replying');
+            }
+            replyTarget = target;
+            const preview = document.getElementById('reply-preview');
+            preview.innerHTML = `
+                <span class="close-reply" onclick="cancelarReply()">×</span>
+                Respondiendo a <strong>${escaparHTML(target.autor)}</strong>: <span class="reply-info">${escaparHTML(target.texto)}</span>
+            `;
+            preview.classList.add('visible');
+            preview.hidden = false;
+            if (target.id) {
+                const targetMsg = document.querySelector(`.msg[data-msg-id="${target.id}"]`);
+                if (targetMsg) targetMsg.classList.add('replying');
+            }
+        }
+
+        function cancelarReply() {
+            if (replyTarget && replyTarget.id) {
+                const targetMsg = document.querySelector(`.msg[data-msg-id="${replyTarget.id}"]`);
+                if (targetMsg) targetMsg.classList.remove('replying');
+            }
+            replyTarget = null;
+            const preview = document.getElementById('reply-preview');
+            preview.classList.remove('visible');
+            preview.hidden = true;
+            preview.innerHTML = '';
+        }
+
+        function generarIdMensaje() {
+            if (window.crypto && crypto.randomUUID) {
+                return crypto.randomUUID();
+            }
+            return Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
         }
 
         function agregarBarraSinLeer() {

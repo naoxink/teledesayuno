@@ -53,6 +53,7 @@ define('PALETA_COLORES', [
 $mensajesSinLeer = 0;
 $bufferMensaje = "";
 $ultimoEvento = "";
+$mensajesPorId = [];
 $tituloOriginal = "🔐 P2P Encrypted - #" . $sala;
 
 // Establecemos el título inicial de la pestaña de la terminal
@@ -212,12 +213,24 @@ while (true) {
                                     echo $timestamp . CLR_ERROR . "☠️ [" . $clientId . "]: Fallo de integridad.\n" . CLR_RESET;
                                 } else {
                                     $msgContent = json_decode($decrypted, true);
-                                    $autor = $msgContent['autor'] ?? $clientId;
-                                    $texto = $msgContent['texto'] ?? '';
+                            $autor = $msgContent['autor'] ?? $clientId;
+                            $texto = $msgContent['texto'] ?? '';
 
-                                    $colorAutor = obtenerColorUsuario($autor);
+                            if (isset($msgContent['id'])) {
+                                $mensajesPorId[$msgContent['id']] = $msgContent;
+                            }
 
-                                    echo $timestamp . $colorAutor . "[" . $autor . "]" . CLR_RESET . " " . trim($texto) . "\n";
+                            $colorAutor = obtenerColorUsuario($autor);
+                            $replyText = '';
+                            if (isset($msgContent['replyTo']) && is_array($msgContent['replyTo'])) {
+                                $replyOriginal = $msgContent['replyTo'];
+                                $replyAutor = $replyOriginal['autor'] ?? 'Desconocido';
+                                $replyTexto = $replyOriginal['texto'] ?? '';
+                                $replyText = "\n    ↳ En respuesta a [{$replyAutor}]: " . trim($replyTexto);
+                            }
+
+                            $idText = isset($msgContent['id']) ? " [" . substr($msgContent['id'], 0, 6) . "]" : '';
+                            echo $timestamp . $colorAutor . "[" . $autor . "]" . CLR_RESET . $idText . " " . trim($texto) . $replyText . "\n";
 
                                     // Incrementamos los mensajes sin leer para el título de la pestaña
                                     $mensajesSinLeer++;
@@ -257,10 +270,29 @@ while (true) {
         if ($char === "\n" || $char === "\r") { // El usuario pulsa Enter
             $msgPlano = trim($bufferMensaje);
             if ($msgPlano !== "") {
-
-                $httpCode = mandarMensaje($msgPlano);
-
-                renderizarMensajePropio($httpCode, $msgPlano);
+                if (substr($msgPlano, 0, 7) === '/reply ') {
+                    $partes = preg_split('/\s+/', $msgPlano, 3);
+                    if (count($partes) < 3) {
+                        echo "\r\33[2K" . CLR_SYSTEM . "[INFO] Uso: /reply <id> <mensaje>\n" . CLR_RESET;
+                        $bufferMensaje = "";
+                        echo CLR_PROMPT . "> " . CLR_RESET;
+                        continue;
+                    }
+                    $replyId = $partes[1];
+                    $msgReal = trim($partes[2]);
+                    if (!isset($mensajesPorId[$replyId])) {
+                        echo "\r\33[2K" . CLR_ERROR . "[ERROR] Mensaje no encontrado: {$replyId}\n" . CLR_RESET;
+                        $bufferMensaje = "";
+                        echo CLR_PROMPT . "> " . CLR_RESET;
+                        continue;
+                    }
+                    $replyTarget = $mensajesPorId[$replyId];
+                    $httpCode = mandarMensaje($msgReal, $replyTarget);
+                    renderizarMensajePropio($httpCode, $msgReal, $replyTarget);
+                } else {
+                    $httpCode = mandarMensaje($msgPlano);
+                    renderizarMensajePropio($httpCode, $msgPlano);
+                }
             } else {
                 echo "\r\33[2K";
             }
@@ -290,8 +322,26 @@ while (true) {
     usleep(20000);
 }
 
-function mandarMensaje($texto) {
-    $estructuraChat = json_encode(["autor" => MY_ALIAS, "texto" => $texto]);
+function mandarMensaje($texto, $replyTo = null) {
+    $mensaje = [
+        "id" => bin2hex(random_bytes(8)),
+        "autor" => MY_ALIAS,
+        "texto" => $texto
+    ];
+
+    if (is_array($replyTo) && isset($replyTo['id'])) {
+        $mensaje['replyTo'] = [
+            'id' => $replyTo['id'],
+            'autor' => $replyTo['autor'] ?? 'Desconocido',
+            'texto' => $replyTo['texto'] ?? ''
+        ];
+    }
+
+    $estructuraChat = json_encode($mensaje);
+
+    if (isset($mensaje['id'])) {
+        $GLOBALS['mensajesPorId'][$mensaje['id']] = $mensaje;
+    }
 
     $iv = openssl_random_pseudo_bytes(12);
     $tag = "";
@@ -321,12 +371,17 @@ function mandarMensaje($texto) {
     return $httpCode;
 }
 
-function renderizarMensajePropio($httpCode, $texto) {
+function renderizarMensajePropio($httpCode, $texto, $replyTo = null) {
     echo "\r\33[2K"; // Limpiamos la línea de edición
     $timestamp = CLR_TIME . "[" . date('H:i:s') . "] " . CLR_RESET;
 
     if ($httpCode === 201) {
-        echo $timestamp . CLR_TU . "[" . MY_ALIAS . "]" . CLR_RESET . " " . $texto . "\n";
+        $replyText = '';
+        if (is_array($replyTo) && isset($replyTo['autor'])) {
+            $replyTexto = $replyTo['texto'] ?? '';
+            $replyText = "\n    ↳ En respuesta a [{$replyTo['autor']}]: " . trim($replyTexto);
+        }
+        echo $timestamp . CLR_TU . "[" . MY_ALIAS . "]" . CLR_RESET . " " . $texto . $replyText . "\n";
     } else {
         echo $timestamp . CLR_ERROR . "[Error de envío HTTP " . $httpCode . "]\n" . CLR_RESET;
     }
