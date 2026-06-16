@@ -384,15 +384,27 @@
             input.addEventListener('input', handleMentionInput);
             input.addEventListener('keydown', handleMentionKeydown);
 
+            // Event delegation para clicks en .clickable y .reply-button dentro de #messages
             const messagesBox = document.getElementById('messages');
+            messagesBox.addEventListener('mousedown', (event) => {
+                const clickable = event.target.closest('.clickable');
+                if (clickable) {
+                    event.preventDefault();
+                    const alias = clickable.dataset.alias;
+                    if (alias) insertarMention(alias);
+                }
+            });
+            
             messagesBox.addEventListener('click', (event) => {
                 const button = event.target.closest('.reply-button');
-                if (!button) return;
-                const id = button.dataset.msgId;
-                if (!id) return;
-                const original = mensajesPorId[id];
-                if (!original) return;
-                establecerReplyTarget({ id: original.id, autor: original.autor, texto: original.texto });
+                if (button) {
+                    event.preventDefault();
+                    const id = button.dataset.msgId;
+                    if (!id) return;
+                    const original = mensajesPorId[id];
+                    if (!original) return;
+                    establecerReplyTarget({ id: original.id, autor: original.autor, texto: original.texto });
+                }
             });
         });
 
@@ -893,27 +905,7 @@
             `;
 
             const nuevo = box.lastElementChild;
-            if (nuevo) {
-                nuevo.querySelectorAll('.clickable').forEach(el => {
-                    el.addEventListener('mousedown', (e) => {
-                        e.preventDefault();
-                        const alias = el.dataset.alias;
-                        if (alias) insertarMention(alias);
-                    });
-                });
-
-                nuevo.querySelectorAll('.reply-button').forEach(el => {
-                    el.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        const id = el.dataset.msgId;
-                        if (!id) return;
-                        const original = mensajesPorId[id];
-                        if (!original) return;
-                        establecerReplyTarget({ id: original.id, autor: original.autor, texto: original.texto });
-                    });
-                });
-            }
-
+            
             box.scrollTop = box.scrollHeight;
         }
 
