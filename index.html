@@ -404,6 +404,7 @@
                     const original = mensajesPorId[id];
                     if (!original) return;
                     establecerReplyTarget({ id: original.id, autor: original.autor, texto: original.texto });
+                    document.getElementById('msg-input').focus();
                 }
             });
         });
