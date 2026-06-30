@@ -297,10 +297,10 @@
     <div style="position: fixed; top: 8px; right: 8px; z-index: 999;">
         <select id="theme-select" onchange="seleccionarTema(this.value)">
             <option value="dark">Cyberpunk (Oscuro)</option>
-            <option value="corporate">Corporativo (Teams)</option>
+            <!-- <option value="corporate">Corporativo (Teams)</option> -->
             <option value="terminal">Consola (Bash)</option>
             <option value="ide">Editor (VS Code)</option>
-            <option value="github">GitHub (Claro)</option>
+            <!-- <option value="github">GitHub (Claro)</option> -->
             <option value="dracula">Dracula (Aesthetic)</option>
             <option value="nxk">nxk (Oscuro)</option>
         </select>
@@ -1024,17 +1024,33 @@
 
         // 3. SELECCIÓN DE COLOR ADAPTATIVA (Sustituye tu función existente)
         function obtenerColorPorAlias(str) {
-            let hash = 0;
-            for (let i = 0; i < str.length; i++) {
-                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            const PALETA = [
+                "#ef4444", // rojo
+                "#f97316", // naranja
+                "#eab308", // amarillo
+                "#84cc16", // lima
+                "yellowgreen",
+                "#22c55e", // verde
+                "#14b8a6", // turquesa
+                "#06b6d4", // cian
+                "#3b82f6", // azul
+                "#6366f1", // índigo
+                "#8b5cf6", // violeta
+                "#a855f7", // púrpura
+                "#d946ef", // fucsia
+                "#ec4899", // rosa
+            ];
+
+            alias = str.trim().toLowerCase();
+        
+            let hash = 0x811c9dc5;
+        
+            for (let i = 0; i < alias.length; i++) {
+                hash ^= alias.charCodeAt(i);
+                hash = Math.imul(hash, 0x01000193);
             }
-            const hue = Math.abs(hash) % 360;
-            
-            // Si el tema actual es uno de los claros, bajamos el brillo al 35% para que el texto sea legible
-            const temaActual = localStorage.getItem('chat-theme') || 'dark';
-            const lightness = (temaActual === 'office' || temaActual === 'corporate') ? '35%' : '65%';
-            
-            return `hsl(${hue}, 75%, ${lightness})`;
+        
+            return PALETA[(hash >>> 0) % PALETA.length];
         }
 
         function actualizarContador() {
