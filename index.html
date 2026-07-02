@@ -289,12 +289,109 @@
             cursor: pointer;
             outline: none;
         }
+        #settings-controls {
+            position: fixed;
+            top: 8px;
+            right: 8px;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        #settings-toggle {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.9rem;
+            line-height: 1;
+            cursor: pointer;
+        }
+        #settings-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        #settings-modal[hidden] {
+            display: none;
+        }
+        .settings-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            width: min(420px, 100%);
+            padding: 16px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+        }
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .settings-row:last-child {
+            margin-bottom: 0;
+        }
+        .settings-label {
+            font-size: 0.95rem;
+            color: var(--text);
+        }
+        .settings-switch {
+            position: relative;
+            display: inline-block;
+            width: 42px;
+            height: 24px;
+        }
+        .settings-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .settings-slider {
+            position: absolute;
+            inset: 0;
+            background: #5f5f5f;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .settings-slider::before {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            left: 3px;
+            top: 3px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.2s ease;
+        }
+        .settings-switch input:checked + .settings-slider {
+            background: var(--accent);
+        }
+        .settings-switch input:checked + .settings-slider::before {
+            transform: translateX(18px);
+        }
+        body.app-blurred #login,
+        body.app-blurred #chat-container {
+            filter: blur(7px);
+            transition: filter 0.2s ease;
+        }
     </style>
     <link rel="stylesheet" href="temas.css">
 </head>
 <body>
 
-    <div style="position: fixed; top: 8px; right: 8px; z-index: 999;">
+    <div id="settings-controls">
+        <button id="settings-toggle" type="button" title="Ajustes" onclick="abrirModalConfiguracion()">⚙</button>
         <select id="theme-select" onchange="seleccionarTema(this.value)">
             <option value="dark">Cyberpunk (Oscuro)</option>
             <!-- <option value="corporate">Corporativo (Teams)</option> -->
@@ -304,6 +401,39 @@
             <option value="dracula">Dracula (Aesthetic)</option>
             <option value="nxk">nxk (Oscuro)</option>
         </select>
+    </div>
+
+    <div id="settings-modal" hidden>
+        <div class="settings-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h4 id="settings-title" style="margin:0; color:var(--accent);">Configuración</h4>
+                <button type="button" onclick="cerrarModalConfiguracion()" aria-label="Cerrar ajustes">✕</button>
+            </div>
+            <div class="settings-row">
+                <span class="settings-label">Permitir notificaciones</span>
+                <label class="settings-switch">
+                    <input id="setting-notifications" type="checkbox" onchange="toggleSetting('allowNotifications', this.checked)">
+                    <span class="settings-slider"></span>
+                </label>
+            </div>
+            <div class="settings-row">
+                <span class="settings-label">Cambio de título en mensajes nuevos</span>
+                <label class="settings-switch">
+                    <input id="setting-title" type="checkbox" checked onchange="toggleSetting('changeTitleOnNewMessages', this.checked)">
+                    <span class="settings-slider"></span>
+                </label>
+            </div>
+            <div class="settings-row">
+                <span class="settings-label">Contenido borroso al perder el foco</span>
+                <label class="settings-switch">
+                    <input id="setting-blur" type="checkbox" checked onchange="toggleSetting('blurContentOnFocusLoss', this.checked)">
+                    <span class="settings-slider"></span>
+                </label>
+            </div>
+            <div style="text-align:right; margin-top:8px;">
+                <button type="button" onclick="cerrarModalConfiguracion()">Cerrar</button>
+            </div>
+        </div>
     </div>
 
     <!-- ACCESO -->
@@ -347,6 +477,12 @@
         let unreadCount = 0;
         let tituloBase = "Teledesayuno"; // Título inicial por defecto
         let miAlias = '';
+        const configuracionPorDefecto = {
+            allowNotifications: false,
+            changeTitleOnNewMessages: true,
+            blurContentOnFocusLoss: true
+        };
+        let settings = { ...configuracionPorDefecto };
         let miembrosConectados = [];
         let aliasChangesPendientes = [];
         let mentionIndex = -1;
@@ -356,6 +492,8 @@
         const mensajesPorId = {};
 
         document.addEventListener('DOMContentLoaded', () => {
+            resetearConfiguracion();
+
             // Leemos el hash de la URL eliminando la '#' inicial
             const hash = window.location.hash.trim();
             
@@ -648,6 +786,42 @@
             }
         }
 
+        function resetearConfiguracion() {
+            settings = { ...configuracionPorDefecto };
+            document.getElementById('setting-notifications').checked = settings.allowNotifications;
+            document.getElementById('setting-title').checked = settings.changeTitleOnNewMessages;
+            document.getElementById('setting-blur').checked = settings.blurContentOnFocusLoss;
+            aplicarEstadoConfiguracion();
+        }
+
+        function abrirModalConfiguracion() {
+            const modal = document.getElementById('settings-modal');
+            if (modal) {
+                modal.hidden = false;
+            }
+        }
+
+        function cerrarModalConfiguracion() {
+            const modal = document.getElementById('settings-modal');
+            if (modal) {
+                modal.hidden = true;
+            }
+        }
+
+        function toggleSetting(clave, valor) {
+            settings[clave] = valor;
+
+            if (clave === 'allowNotifications' && valor && window.Notification && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+
+            aplicarEstadoConfiguracion();
+        }
+
+        function aplicarEstadoConfiguracion() {
+            document.body.classList.toggle('app-blurred', !tieneElFoco && settings.blurContentOnFocusLoss);
+        }
+
         // LÓGICA DE CONTROL
         async function conectar() {
             const salaId = document.getElementById('room-id').value.trim().toLowerCase();
@@ -655,7 +829,7 @@
 
             if (!salaId || !password) return alert("Introduce sala y contraseña.");
 
-            if (window.Notification && Notification.permission === "default") {
+            if (settings.allowNotifications && window.Notification && Notification.permission === "default") {
                 Notification.requestPermission();
             }
 
@@ -760,11 +934,11 @@
                             agregarBarraSinLeer()
                         }
 
-                        // 2. Modificamos el título de la pestaña: ej. "(3) #sala-ocio"
-                        document.title = `(${unreadCount}) ${tituloBase}`;
+                        if (settings.changeTitleOnNewMessages) {
+                            document.title = `(${unreadCount}) ${tituloBase}`;
+                        }
 
-                        // 3. Lanzamos la notificación nativa (tu código anterior)
-                        if (Notification.permission === "granted") {
+                        if (settings.allowNotifications && Notification.permission === "granted") {
                             const notification = new Notification(`#${salaId} - ${datos.autor}`, {
                                 body: datos.texto,
                                 tag: 'chat-notification',
@@ -1077,10 +1251,12 @@
             
             unreadCount = 0;
             document.title = tituloBase; // Restaura el título original
+            aplicarEstadoConfiguracion();
         });
 
         window.addEventListener('blur', () => {
             tieneElFoco = false;
+            aplicarEstadoConfiguracion();
         });
     </script>
 </body>
