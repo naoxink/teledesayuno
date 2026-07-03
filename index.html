@@ -385,6 +385,28 @@
             filter: blur(7px);
             transition: filter 0.2s ease;
         }
+
+        /* Estado base del mensaje */
+        .msg-item {
+            opacity: 1;
+            transform: scale(1);
+            transition: opacity 1s ease-out, transform 1s ease-out; 
+        }
+
+        /* Forzamos el ocultamiento sin importar qué otra clase tenga el div */
+        .msg-item.fade-out {
+            opacity: 0 !important;
+            transform: scale(0.95) !important;
+        }
+
+        /* Clase de limpieza rápida */
+        .msg-item.fade-out.background-cleanup {
+            transition: opacity 0.05s linear, transform 0.05s linear !important;
+        }
+
+        .disabled {
+            opacity: .5;
+        }
     </style>
     <link rel="stylesheet" href="temas.css">
 </head>
@@ -429,6 +451,17 @@
                     <input id="setting-blur" type="checkbox" checked onchange="toggleSetting('blurContentOnFocusLoss', this.checked)">
                     <span class="settings-slider"></span>
                 </label>
+            </div>
+            <div class="settings-row">
+                <span class="settings-label">Mensajes con autodestrucción</span>
+                <label class="settings-switch">
+                    <input id="setting-selfdestructMessages" type="checkbox" checked onchange="toggleSetting('selfdestructMessages', this.checked)">
+                    <span class="settings-slider"></span>
+                </label>
+            </div>
+            <div class="settings-row disabled">
+                <span class="settings-label">Segundos de autodestrucción</span>
+                <input id="setting-selfDestructSeconds" disabled="true" type="number" value="60" onchange="toggleSetting('selfDestructSeconds', this.value)">
             </div>
             <div style="text-align:right; margin-top:8px;">
                 <button type="button" onclick="cerrarModalConfiguracion()">Cerrar</button>
@@ -480,7 +513,9 @@
         const configuracionPorDefecto = {
             allowNotifications: false,
             changeTitleOnNewMessages: true,
-            blurContentOnFocusLoss: true
+            blurContentOnFocusLoss: true,
+            selfdestructMessages: false,
+            selfDestructSeconds: 60
         };
         let settings = { ...configuracionPorDefecto };
         let miembrosConectados = [];
@@ -791,6 +826,7 @@
             document.getElementById('setting-notifications').checked = settings.allowNotifications;
             document.getElementById('setting-title').checked = settings.changeTitleOnNewMessages;
             document.getElementById('setting-blur').checked = settings.blurContentOnFocusLoss;
+            document.getElementById('setting-selfdestructMessages').checked = settings.selfdestructMessages;
             aplicarEstadoConfiguracion();
         }
 
@@ -820,6 +856,40 @@
 
         function aplicarEstadoConfiguracion() {
             document.body.classList.toggle('app-blurred', !tieneElFoco && settings.blurContentOnFocusLoss);
+        }
+
+        function animarYBorrar(elemento, usarLimpiezaFondo = false) {
+            if (!elemento.parentNode || elemento.classList.contains('fade-out')) return;
+
+            elemento.classList.add('fade-out');
+            
+            if (usarLimpiezaFondo) {
+                elemento.classList.add('background-cleanup');
+            }
+
+            // 1. Manejador de evento blindado
+            const alTerminarTransicion = (e) => {
+                // Solo actuamos si la transición que terminó es del PROPIO elemento y es la de opacidad
+                if (e.target === elemento && e.propertyName === 'opacity') {
+                    elemento.removeEventListener('transitionend', alTerminarTransicion);
+                    elemento.remove();
+                }
+            };
+
+            // Quitamos el { once: true } porque si un hijo dispara el evento antes, 
+            // consumiría el "once" y nos quedaríamos sin listener.
+            elemento.addEventListener('transitionend', alTerminarTransicion);
+
+            // 2. Failsafe (Plan B)
+            // Si por cualquier motivo el CSS falla o el navegador bloquea el evento,
+            // forzamos el borrado un poco después de lo que dura la animación.
+            const tiempoSeguridad = usarLimpiezaFondo ? 100 : 1500; // 100ms fondo, 1.5s normal
+            setTimeout(() => {
+                if (elemento.parentNode) {
+                    elemento.removeEventListener('transitionend', alTerminarTransicion);
+                    elemento.remove();
+                }
+            }, tiempoSeguridad);
         }
 
         // LÓGICA DE CONTROL
@@ -873,7 +943,7 @@
                 // Si la pista está libre, nos quedamos con el alias limpio
                 miAlias = aliasBase;
             }
-            agregarMensajeSistema(`Has entrado a la sala. Tu alias temporal es: <strong style="color:var(--accent)">${miAlias}</strong>`);
+            agregarMensajeSistema(`Has entrado a la sala. Tu alias temporal es: <strong style="color:${obtenerColorPorAlias(miAlias)}">${miAlias}</strong>`);
 
             // MODIFICACIÓN 2: Escuchar quién entra y quién sale de la sala
             // Cuando alguien entra:
@@ -1069,15 +1139,39 @@
                     <span class="reply-text">${escaparHTML(replyTo.texto)}</span>
                 </div>` : '';
 
-            box.innerHTML += `
-                <div class="${claseMensaje}" data-msg-id="${escaparHTML(messageId || '')}">
-                    ${replyHtml}
-                    <span class="time">${hora}</span>
-                    ${messageId ? `<button type="button" class="reply-button" title="Responder" data-msg-id="${escaparHTML(messageId)}">Resp</button>` : ''}
-                    <span class="user ${esMio ? 'own' : ''} clickable" data-alias="${escaparHTML(autor)}" style="color: ${colorAutor}; font-weight: bold;">[${escaparHTML(autor)}]:</span>
-                    <span>${resaltarMenciones(texto)}</span>
-                </div>
+            // 1. Creamos el nodo principal del mensaje
+            const msgElement = document.createElement('div');
+
+            // Asignamos las clases (asumiendo que claseMensaje puede tener varias clases separadas por espacio)
+            msgElement.className = `${claseMensaje} msg-item}`;
+
+            // Asignamos el dataset de forma nativa (el DOM se encarga de escapar esto correctamente)
+            if (messageId) {
+                msgElement.dataset.msgId = messageId; 
+            }
+
+            // 2. Inyectamos el contenido interno
+            msgElement.innerHTML = `
+                ${replyHtml}
+                <span class="time">${hora}</span>
+                ${messageId ? `<button type="button" class="reply-button" title="Responder" data-msg-id="${escaparHTML(messageId)}">Resp</button>` : ''}
+                <span class="user ${esMio ? 'own' : ''} clickable" data-alias="${escaparHTML(autor)}" style="color: ${colorAutor}; font-weight: bold;">[${escaparHTML(autor)}]:</span>
+                <span>${resaltarMenciones(texto)}</span>
             `;
+
+            // 3. Lo insertamos en el DOM sin afectar a los hermanos
+            box.appendChild(msgElement);
+
+            if (settings.selfdestructMessages) {
+                const tiempoVida = settings.selfDestructSeconds * 1000
+                const ahora = Date.now();
+                // Guardamos la marca de tiempo absoluta de expiración
+                msgElement.dataset.expiresAt = ahora + tiempoVida;
+
+                setTimeout(() => {
+                    animarYBorrar(msgElement);
+                }, tiempoVida);
+            }
 
             const nuevo = box.lastElementChild;
             
@@ -1258,6 +1352,31 @@
             tieneElFoco = false;
             aplicarEstadoConfiguracion();
         });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                const box = document.getElementById('messages');
+                const tiempoActual = Date.now();
+                const mensajes = box.querySelectorAll('[data-expires-at]');
+                
+                mensajes.forEach(msg => {
+                    const expiracion = parseInt(msg.dataset.expiresAt, 10);
+                    
+                    // Si el tiempo actual ya superó el tiempo de vida asignado...
+                    if (tiempoActual >= expiracion) {
+                        // MODIFICACIÓN: En lugar de remove(), usamos la animación súper rápida
+                        animarYBorrar(msg, true); // true = usar transición acelerada
+                    }
+                });
+            }
+        });
+
+        document.querySelector('#setting-selfdestructMessages').addEventListener('change', () => {
+            const checked = this.event.target.checked
+            document.querySelector('#setting-selfDestructSeconds').parentNode.classList[!checked ? 'add' : 'remove']('disabled')
+            if (!checked) document.querySelector('#setting-selfDestructSeconds').setAttribute('disabled', true)
+            else document.querySelector('#setting-selfDestructSeconds').removeAttribute('disabled')
+        })
     </script>
 </body>
 </html>
