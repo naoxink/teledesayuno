@@ -477,6 +477,13 @@
                 <span class="settings-label">Segundos de autodestrucción</span>
                 <input id="setting-selfDestructSeconds" disabled="true" type="number" value="60" onchange="toggleSetting('selfDestructSeconds', this.value)">
             </div>
+            <div class="settings-row">
+                <span class="settings-label">Ocultar aliases</span>
+                <label class="settings-switch">
+                    <input id="setting-hide-aliases" type="checkbox" checked onchange="toggleSetting('hideAliases', this.checked)">
+                    <span class="settings-slider"></span>
+                </label>
+            </div>
             <div style="text-align:right; margin-top:8px;">
                 <button type="button" onclick="cerrarModalConfiguracion()">Cerrar</button>
             </div>
@@ -529,7 +536,8 @@
             changeTitleOnNewMessages: true,
             blurContentOnFocusLoss: true,
             selfdestructMessages: false,
-            selfDestructSeconds: 60
+            selfDestructSeconds: 60,
+            hideAliases: true
         };
         let settings = { ...configuracionPorDefecto };
         let miembrosConectados = [];
@@ -626,6 +634,9 @@
         }
 
         function renderMentionSuggester(matches) {
+            if (settings.hideAliases) {
+                return esconderMentionSuggester();
+            }
             const box = document.getElementById('mention-suggester');
             if (!matches || matches.length === 0) {
                 return esconderMentionSuggester();
@@ -686,7 +697,7 @@
             const before = input.value.slice(0, caret);
             const match = before.match(/(?:^|\s)@([^\s@]*)$/);
 
-            if (!match) {
+            if (!match || settings.hideAliases) {
                 return esconderMentionSuggester();
             }
 
@@ -960,7 +971,7 @@
                 // Si la pista está libre, nos quedamos con el alias limpio
                 miAlias = aliasBase;
             }
-            agregarMensajeSistema(`Has entrado a la sala. Tu alias temporal es: <strong style="color:${obtenerColorPorAlias(miAlias)}">${miAlias}</strong>`);
+            agregarMensajeSistema(`Has entrado a la sala. Tu alias temporal es: <strong style="color:${obtenerColorPorAlias(miAlias)}">${settings.hideAliases ? '⬤' : miAlias}</strong>`);
 
             // MODIFICACIÓN 2: Escuchar quién entra y quién sale de la sala
             // Cuando alguien entra:
@@ -1156,7 +1167,7 @@
             const hora = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
             if (messageId) {
-                mensajesPorId[messageId] = { id: messageId, autor, texto, replyTo };
+                mensajesPorId[messageId] = { id: messageId, autor, texto, replyTo, spoiler };
             }
 
             const colorAutor = obtenerColorPorAlias(autor);
@@ -1165,8 +1176,8 @@
             const claseMensaje = esMencionado ? 'msg mention-target' : 'msg';
             const replyHtml = replyTo ? `
                 <div class="reply-block">
-                    <span class="reply-author">En respuesta a ${escaparHTML(replyTo.autor)}:</span>
-                    <span class="reply-text">${escaparHTML(replyTo.texto)}</span>
+                    <span class="reply-author">En respuesta a${settings.hideAliases ? '' : ' ' + escaparHTML(replyTo.autor)}:</span>
+                    <span class="reply-text ${mensajesPorId[replyTo.id]?.spoiler ? 'spoiler-text' : ''}">${escaparHTML(replyTo.texto)}</span>
                 </div>` : '';
 
             // 1. Creamos el nodo principal del mensaje
@@ -1181,11 +1192,18 @@
             }
 
             // 2. Inyectamos el contenido interno
+            let prompt = `[${escaparHTML(autor)}]`;
+            let clickable = 'clickable'
+            if (settings.hideAliases) {
+                prompt = `⬤`
+                clickable = ''
+            }
+
             msgElement.innerHTML = `
                 ${replyHtml}
                 <span class="time">${hora}</span>
                 ${messageId ? `<button type="button" class="reply-button" title="Responder" data-msg-id="${escaparHTML(messageId)}">Resp</button>` : ''}
-                <span class="user ${esMio ? 'own' : ''} clickable" data-alias="${escaparHTML(autor)}" style="color: ${colorAutor}; font-weight: bold;">[${escaparHTML(autor)}]:</span>
+                <span class="user ${esMio ? 'own' : ''} ${clickable}" data-alias="${escaparHTML(autor)}" style="color: ${colorAutor}; font-weight: bold;">${prompt}:</span>
                 <span class="${spoiler ? 'spoiler-text' : ''}">${resaltarMenciones(texto)}</span>
             `;
 
@@ -1252,7 +1270,7 @@
             const preview = document.getElementById('reply-preview');
             preview.innerHTML = `
                 <span class="close-reply" onclick="cancelarReply()">×</span>
-                Respondiendo a <strong>${escaparHTML(target.autor)}</strong>: <span class="reply-info">${escaparHTML(target.texto)}</span>
+                Respondiendo a ${settings.hideAliases ? '⬤' : target.autor}: <span class="reply-info">${escaparHTML(target.texto)}</span>
             `;
             preview.classList.add('visible');
             preview.hidden = false;
@@ -1337,6 +1355,19 @@
                 "#a855f7", // púrpura
                 "#d946ef", // fucsia
                 "#ec4899", // rosa
+                // Tonos tierra/neutros vivos
+                "#d1d5db", // Gris plata brillante (útil para textos secundarios)
+                "#f59e0b", // Ámbar (un punto medio entre naranja y amarillo)
+
+                // Tonos verdes y azulados fríos
+                "#34d399", // Verde esmeralda claro (más claro que el verde base)
+                "#2dd4bf", // Turquesa eléctrico
+                "#38bdf8", // Azul cielo intenso
+                "#818cf8", // Índigo claro (lavanda vibrante)
+
+                // Tonos profundos para contraste
+                "#c084fc", // Púrpura suave
+                "#fb923c"  // Naranja suave (para separar bien del naranja principal)
             ];
 
             alias = str.trim().toLowerCase();
