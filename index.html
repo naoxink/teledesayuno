@@ -1019,7 +1019,7 @@
                     const datos = JSON.parse(textoDescifrado);
 
                     if (datos.tipo === 'alias-change') {
-                        agregarMensajeSistema(`🔁 El alias <strong>${escaparHTML(datos.aliasAntiguo)}</strong> ha cambiado a <strong>${escaparHTML(datos.aliasNuevo)}</strong>.`);
+                        agregarMensajeSistema(`🔁 El alias <strong style="color: ${obtenerColorPorAlias(datos.aliasAntiguo)}">${escaparHTML(datos.aliasAntiguo)}</strong> ha cambiado a <strong style="color: ${obtenerColorPorAlias(datos.aliasNuevo)}">${escaparHTML(datos.aliasNuevo)}</strong>.`);
                         registrarCambioAlias(datos.aliasAntiguo, datos.aliasNuevo);
                         return;
                     }
