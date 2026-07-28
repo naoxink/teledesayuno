@@ -471,7 +471,6 @@ button:hover { opacity: 0.9; }
     background-color: var(--accent);
     color: #ffffff;
     border-radius: 6px;
-    padding: 6px 14px;
     box-shadow: 0 2px 8px rgba(56, 189, 248, 0.2);
 }
 
