@@ -88,6 +88,26 @@
     --muted: #666;
 }
 
+[data-theme="glass"] {
+    /* Fondo con un gradiente fluido líquido (azul-morado-rosa de Apple) */
+    --bg: linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #311042 70%, #1e293b 100%);
+    
+    /* Contenedores translúcidos estilo cristal */
+    --surface: rgba(255, 255, 255, 0.06);
+    --msg-bg: rgba(255, 255, 255, 0.03);
+    --input-bg: rgba(0, 0, 0, 0.2);
+    
+    /* Textos, acentos y bordes de cristal */
+    --text: #f8fafc;
+    --accent: #38bdf8; /* Azul translúcido brillante */
+    --border: rgba(255, 255, 255, 0.12);
+    --fuente: system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', sans-serif;
+    --muted: rgba(255, 255, 255, 0.45);
+    
+    /* Variable interna extra para el hover de las tarjetas en ajustes/mensajes */
+    --surface-hover: rgba(255, 255, 255, 0.12);
+}
+
 /* ==========================================================================
    2. REGLAS BASE, SCROLLBARS Y LAYOUT COMPACTO
    ========================================================================== */
@@ -331,4 +351,130 @@ button:hover { opacity: 0.9; }
     background-color: var(--muted);
     text-align: center;
     color: var(--bg);
+}
+
+
+
+
+/* ==========================================================================
+   MUTACIONES EXCLUSIVAS: TEMA CRISTAL LÍQUIDO (iOS / macOS Glass)
+   ========================================================================== */
+
+/* 1. Mantenemos el body limpio y usamos alturas dinámicas sin romper el flujo base */
+[data-theme="glass"] body {
+    background: var(--bg);
+    background-attachment: fixed;
+    min-height: 100vh;
+    min-height: 100dvh;
+    box-sizing: border-box;
+    overflow-x: hidden;
+    
+    /* Usamos Grid en el body pero solo para auto-centrar los bloques visibles */
+    display: grid;
+    place-items: center;
+}
+
+/* 2. SI EL LOGIN ESTÁ VISIBLE: Se centrará solo en pantalla */
+[data-theme="glass"] #login {
+    grid-area: 1 / 1; /* Hace que compartan la misma rejilla para evitar empujarse */
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    backdrop-filter: blur(20px) saturate(190%);
+    -webkit-backdrop-filter: blur(20px) saturate(190%);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    padding: 24px;
+    max-width: 450px;
+    width: calc(100% - 40px);
+    box-sizing: border-box;
+    z-index: 5;
+}
+
+/* 3. EL CHAT: Cuando esté activo, se superpondrá correctamente u ocupará su espacio */
+[data-theme="glass"] #chat-container {
+    grid-area: 1 / 1; /* Comparte el espacio con el login */
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    max-width: 100%;
+    width: 100%;
+    height: 100%;
+    z-index: 4;
+}
+
+/* 4. CONTROL DE VISIBILIDAD CRUCIAL PARA ABLY / JS */
+/* Si tu script oculta usando clases, estilos inline o atributos, nos aseguramos de que no ocupen espacio físico */
+[data-theme="glass"] #login[style*="display: none"],
+[data-theme="glass"] #login[hidden] {
+    display: none !important;
+}
+
+[data-theme="glass"] #chat-container[style*="display: none"],
+[data-theme="glass"] #chat-container[hidden] {
+    display: none !important;
+}
+
+/* LA CABECERA (Fija arriba) */
+[data-theme="glass"] #chat-container > div:first-child {
+    position: sticky;
+    top: 0;
+    z-index: 12;
+    background: rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(15px) saturate(200%) !important;
+    -webkit-backdrop-filter: blur(15px) saturate(200%) !important;
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    margin-bottom: 0;
+}
+
+/* CONTENEDOR DE MENSAJES */
+[data-theme="glass"] #messages {
+    background: transparent !important;
+    border: none !important;
+    position: relative;
+    z-index: 1;
+    margin-top: -45px !important;
+    margin-bottom: -55px !important;
+    padding-top: 65px !important;   
+    padding-bottom: 75px !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+}
+
+/* EL ÁREA INFERIOR (INPUT) */
+[data-theme="glass"] #input-area {
+    position: sticky;
+    bottom: 0;
+    z-index: 12;
+    background: rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(15px) saturate(200%) !important;
+    -webkit-backdrop-filter: blur(15px) saturate(200%) !important;
+    border-top: 1px solid var(--border);
+    padding: 12px 16px;
+}
+
+/* --- INTERFAZ COMÚN --- */
+[data-theme="glass"] input {
+    background-color: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 6px 10px;
+}
+
+[data-theme="glass"] button {
+    background-color: var(--accent);
+    color: #ffffff;
+    border-radius: 6px;
+    padding: 6px 14px;
+    box-shadow: 0 2px 8px rgba(56, 189, 248, 0.2);
+}
+
+[data-theme="glass"] #settings-controls {
+    z-index: 20;
 }
