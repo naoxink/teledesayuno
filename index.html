@@ -557,7 +557,7 @@
         let replyTarget = null;
         const mensajesPorId = {};
         const sonidoBase64 = "data:audio/wav;base64,UklGRmYGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YWoGAACAgICAgICAf4CAf3+/n/+fgH9/v5//n4B/v7+f/5+Af7+/n/+fgH+/v5//n4B/v7+f/5+Af7+/n/+fgH+//5//n4B/v7+f/5+Af7+/n/+fgH+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/g=="; 
-        const sonidoNotificacion = new Audio(sonidoBase64);
+        const sonidoNotificacion = crearAudioDesdeBase64(sonidoBase64);
 
         document.addEventListener('DOMContentLoaded', () => {
             resetearConfiguracion();
@@ -615,7 +615,28 @@
             });
         });
 
+        function crearAudioDesdeBase64(base64Data) {
+            try {
+                const partes = base64Data.split(';base64,');
+                const tipoMime = partes[0].split(':')[1];
+                const byteCharacters = atob(partes[1]);
+                const byteNumbers = new Array(byteCharacters.length);
+                
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type: tipoMime });
+                return new Audio(URL.createObjectURL(blob));
+            } catch (e) {
+                console.warn('Error al parsear el audio Base64:', e);
+                return null;
+            }
+        }
+
         function reproducirSonido() {
+            if (!sonidoNotificacion) return false
             // Reiniciamos el tiempo a 0 para que no se ahogue si llegan varios mensajes seguidos
             sonidoNotificacion.currentTime = 0;
             
