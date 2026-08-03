@@ -454,6 +454,13 @@
                 </label>
             </div>
             <div class="settings-row">
+                <span class="settings-label">Sonido al recibir mensajes</span>
+                <label class="settings-switch">
+                    <input id="setting-sound" type="checkbox" onchange="toggleSetting('allowSound', this.checked)">
+                    <span class="settings-slider"></span>
+                </label>
+            </div>
+            <div class="settings-row">
                 <span class="settings-label">Cambio de título en mensajes nuevos</span>
                 <label class="settings-switch">
                     <input id="setting-title" type="checkbox" checked onchange="toggleSetting('changeTitleOnNewMessages', this.checked)">
@@ -534,6 +541,7 @@
         let miAlias = '';
         const configuracionPorDefecto = {
             allowNotifications: false,
+            allowSound: false,
             changeTitleOnNewMessages: true,
             blurContentOnFocusLoss: true,
             selfdestructMessages: false,
@@ -548,6 +556,8 @@
         let mentionNavigationActive = false;
         let replyTarget = null;
         const mensajesPorId = {};
+        const sonidoBase64 = "data:audio/wav;base64,UklGRlIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YTEAAAAA/wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wD//wA="; 
+        const sonidoNotificacion = new Audio(sonidoBase64);
 
         document.addEventListener('DOMContentLoaded', () => {
             resetearConfiguracion();
@@ -605,6 +615,17 @@
             });
         });
 
+        function reproducirSonido() {
+            // Reiniciamos el tiempo a 0 para que no se ahogue si llegan varios mensajes seguidos
+            sonidoNotificacion.currentTime = 0;
+            
+            // El bloque catch evita que la consola se llene de errores rojos 
+            // si el navegador bloquea el Autoplay por falta de interacción.
+            sonidoNotificacion.play().catch(error => {
+                console.warn('El navegador bloqueó el sonido:', error);
+            });
+        }
+        
         function actualizarMiembrosConectados(members) {
             miembrosConectados = (members || [])
                 .map(member => member.clientId)
@@ -1037,6 +1058,10 @@
                             document.title = `(${unreadCount}) ${tituloBase}`;
                         }
 
+                        if (settings.allowSound) {
+                            reproducirSonido()
+                        }
+
                         if (settings.allowNotifications && Notification.permission === "granted") {
                             const notification = new Notification(`#${salaId} - ${datos.autor}`, {
                                 body: datos.texto,
@@ -1394,6 +1419,8 @@
                 document.getElementById('user-count').innerText = texto;
             });
         }
+
+        
 
         window.addEventListener('focus', () => {
             tieneElFoco = true;
