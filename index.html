@@ -888,6 +888,7 @@
                 const bufferDescifrado = await crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, clave, ciphertext);
                 return decoder.decode(bufferDescifrado);
             } catch (e) {
+                agregarMensajeSistema('< No se ha podido descifrar el mensaje. Clave inválida >')
                 throw new Error("Clave inválida");
             }
         }
