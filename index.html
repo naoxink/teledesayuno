@@ -421,6 +421,71 @@
             filter: blur(0);
             user-select: auto; /* Permite volver a seleccionar el texto normalmente */
         }
+
+        /* ====== PANEL DE USUARIOS CONECTADOS ====== */
+        #chat-container.with-sidebar {
+            flex-direction: row;
+            max-width: 100%;
+            gap: 10px;
+        }
+        #chat-main {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 0;
+            height: 100%;
+        }
+        #user-sidebar {
+            width: 160px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid var(--border);
+            padding-left: 10px;
+        }
+        #user-sidebar h5 {
+            margin: 0 0 8px 0;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            color: #888;
+        }
+        #user-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            overflow-y: auto;
+            flex: 1;
+        }
+        #user-list li {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 0;
+            font-size: 0.85rem;
+        }
+        #user-list li .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        #user-list li .name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-weight: 600;
+        }
+        #user-list li.me .name::after {
+            content: ' (tú)';
+            font-weight: 400;
+            opacity: 0.6;
+        }
+        @media (max-width: 640px) {
+            #user-sidebar {
+                display: none;
+            }
+        }
     </style>
     <link rel="stylesheet" href="temas.css">
 </head>
@@ -517,19 +582,25 @@
 
     <!-- PANEL DEL CHAT -->
     <div id="chat-container" style="display: none;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <div>
-                <span id="room-title" style="font-weight:bold; font-size:0.9rem; color:var(--accent);"></span>
-                <span id="user-count" style="font-size:0.8rem; color:#777; margin-left:8px;"></span>
+        <div id="chat-main">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <div>
+                    <span id="room-title" style="font-weight:bold; font-size:0.9rem; color:var(--accent);"></span>
+                    <span id="user-count" style="font-size:0.8rem; color:#777; margin-left:8px;"></span>
+                </div>
+                <span style="font-size:0.75rem; color:#555;">Cifrado de extremo a extremo • Efímero</span>
             </div>
-            <span style="font-size:0.75rem; color:#555;">Cifrado de extremo a extremo • Efímero</span>
+            <div id="messages"></div>
+            <div id="reply-preview" class="reply-preview" hidden></div>
+            <div id="input-area" class="chat-input-wrapper">
+                <input type="text" id="msg-input" placeholder="Mensaje seguro..." onkeypress="if(event.key==='Enter') enviar()">
+                <div id="mention-suggester" class="mention-suggester" hidden></div>
+                <button onclick="enviar()">Enviar</button>
+            </div>
         </div>
-        <div id="messages"></div>
-        <div id="reply-preview" class="reply-preview" hidden></div>
-        <div id="input-area" class="chat-input-wrapper">
-            <input type="text" id="msg-input" placeholder="Mensaje seguro..." onkeypress="if(event.key==='Enter') enviar()">
-            <div id="mention-suggester" class="mention-suggester" hidden></div>
-            <button onclick="enviar()">Enviar</button>
+        <div id="user-sidebar">
+            <h5>Conectados</h5>
+            <ul id="user-list"></ul>
         </div>
     </div>
 
@@ -556,7 +627,7 @@
         let mentionNavigationActive = false;
         let replyTarget = null;
         const mensajesPorId = {};
-        const sonidoBase64 = "data:audio/wav;base64,UklGRmYGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YWoGAACAgICAgICAf4CAf3+/n/+fgH9/v5//n4B/v7+f/5+Af7+/n/+fgH+/v5//n4B/v7+f/5+Af7+/n/+fgH+//5//n4B/v7+f/5+Af7+/n/+fgH+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/g=="; 
+        const sonidoBase64 = "data:audio/wav;base64,UklGRtQEAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YbAEAAB/vuHWo2AqHDt4ud7YqWYvHDdys9zarmwzHTNsrtnbs3I4HjBmqNbct3g8Hy1hotPdvH5BIStbnM/dwIRHIylWlsvdw4pMJSdRkMfcx5BRKCZNisLbypZXKyVIhL7azJtdLiREf7nYz6BiMiRAebTW0aVoNSQ9c6/U0qpuOSU6bqrR065zPiY3aKTP1LJ5Qic0Y5/L1bZ/RykyXpnI1bqETCswWpTE1L2JUC0vVY/A1MCOVS8uUYm808OUWzItTYS40sWYYDUsSX+00MedZTksRnmvzsmiajwtQ3SqzMqmb0AtQG+mysuqdEQuPWuhx8yueUgvO2acxMyxfkwxOWGXwcy0g1AzOF2Svsy3iFU1N1mNusy6jVk3NlWItsu8kV46NVKDssm+lmM9NU9+rsjAmmdANUx6qsbBnmxDNUl1psTDonFGNkZxosLDpXVKNkRtnb/EqXpOOEJomb3ErH5ROUFllLrEr4NVOz9hkLfEsYdZPT5di7TDs4tdPz5ah7DCtY9iQT1Xg63Bt5NmRD1Uf6nAuZdqRz1ReqW+uppuSj1PdqG8u55yTT5Ncp26vKF2UD9Lb5q4vKR7U0BJa5a1vKZ+V0FIaJKzvKmCWkNHZI6wvKuGXkVGYYqtu62KYkdFXoaquq+NZUlFXIKnubCRaUtFWX+kuLGUbU5FV3ugtrKXcFBGVXedtLOadFNGU3SZsrSceFZHUnGWsLSfe1lIUG6TrrShflxJT2uPrLSjgl9LTmiMqbOlhWJNTmWIp7OniGZOTWOFpLKoi2lQTWGCobGpjmxSTV9+nq+qkW9VTV17m66rk3JXTlt4mKyrlnVaT1p2lausmHlcT1hzkqmsmnxfUFdwj6esnH9hUldujaWrnYFkU1ZriqOrn4RnVFZph6CqoIdqVlVnhJ6poYlsWFVmgZuoooxvWlVkf5mno45yXFZifJemo5B0XlZheZSlpJJ3YFdgd5GjpJN6YlhfdY+hpJV8ZFlec4ygo5Z+Z1pecYqeo5iBaVtdb4ico5mDa1xdbYWaopqFbl5dbIOYoZqHcF9daoGWoJuJcmFeaX+Un5uLdGNeaHySnpyMd2VfZ3uQnZyOeWZfZnmNm5yPe2hgZneLmpyQfWphZXWJmJuRfmxiZXSHl5uSgG5jZXOFlZqTgnBkZXGEk5qThHJmZXCCkpmUhXNnZW+AkJiUhnVoZm9/jpeUiHdqZm59jZaUiXlrZ218i5WUinptaG16iZOUi3xuaG15iJKUi31waWx4hpGTjH5xamx3hZCTjIBza212g46SjYF0bG11go2RjYJ2bW11gYyQjYN3b210gIqQjYR4cG50f4mPjYV5cW90foiOjYV7cm9zfYeNjIZ8c3BzfIWMjIZ9dHFze4SLi4Z+dXJ0e4OKi4d+d3J0eoKJiod/eHN0eoGIioeAeXR1eYCHiYaAenV1eYCGiIaBenZ2eX+Fh4aBe3d2eX+Eh4aBfHh3eX6DhoWCfXl4eX6ChYWCfXp4en2BhISCfnp5en2Bg4OBfnt6e32AgoOBf3x7e32AgoKBf317fH1/gYGBf318fH1/gIGAf359fX5/gICAf35+fn5/f39/f35+fn4="; 
         const sonidoNotificacion = crearAudioDesdeBase64(sonidoBase64);
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -613,6 +684,17 @@
                     document.getElementById('msg-input').focus();
                 }
             });
+
+            // Event delegation para clicks en los usuarios del listado lateral
+            const userList = document.getElementById('user-list');
+            userList.addEventListener('mousedown', (event) => {
+                const clickable = event.target.closest('.clickable');
+                if (clickable) {
+                    event.preventDefault();
+                    const alias = clickable.dataset.alias;
+                    if (alias) insertarMention(alias);
+                }
+            });
         });
 
         function crearAudioDesdeBase64(base64Data) {
@@ -652,6 +734,7 @@
                 .map(member => member.clientId)
                 .filter(Boolean)
                 .filter(alias => alias !== miAlias);
+            renderUserSidebar();
         }
 
         function registrarCambioAlias(oldAlias, newAlias) {
@@ -667,6 +750,25 @@
                 (tipo === 'leave' && alias === item.oldAlias) ||
                 (tipo === 'enter' && alias === item.newAlias)
             ) || null;
+        }
+
+        function renderUserSidebar() {
+            const sidebar = document.getElementById('user-sidebar');
+            const list = document.getElementById('user-list');
+            if (!sidebar || !list) return;
+
+            const todos = [...new Set([miAlias, ...miembrosConectados].filter(Boolean))]
+                .sort((a, b) => (a === miAlias ? -1 : b === miAlias ? 1 : a.localeCompare(b)));
+
+            list.innerHTML = todos.map(alias => {
+                const esMio = alias === miAlias;
+                const color = obtenerColorPorAlias(alias);
+                const nombreMostrado = settings.hideAliases ? (esMio ? 'Tú' : '⬤') : alias;
+                return `<li class="${esMio ? 'me' : ''}">
+                    <span class="dot" style="background:${color};"></span>
+                    <span class="name clickable" data-alias="${escaparHTML(alias)}" style="color:${color};">${escaparHTML(nombreMostrado)}</span>
+                </li>`;
+            }).join('');
         }
 
         function highlightMentionSuggester(index) {
@@ -924,6 +1026,10 @@
             }
 
             aplicarEstadoConfiguracion();
+
+            if (clave === 'hideAliases') {
+                renderUserSidebar();
+            }
         }
 
         function aplicarEstadoConfiguracion() {
@@ -987,6 +1093,7 @@
             // 2. Transición de UI
             document.getElementById('login').style.display = 'none';
             document.getElementById('chat-container').style.display = 'flex';
+            document.getElementById('chat-container').classList.add('with-sidebar');
             document.getElementById('room-title').innerText = `#${salaId}`;
 
             tituloBase = `Teledesayuno #${salaId}`;
@@ -1016,6 +1123,7 @@
                 miAlias = aliasBase;
             }
             agregarMensajeSistema(`Has entrado a la sala. Tu alias temporal es: <strong style="color:${obtenerColorPorAlias(miAlias)}">${settings.hideAliases ? '⬤' : miAlias}</strong>`);
+            renderUserSidebar();
 
             // MODIFICACIÓN 2: Escuchar quién entra y quién sale de la sala
             // Cuando alguien entra:
@@ -1026,6 +1134,7 @@
                         miembrosConectados.push(member.clientId);
                     }
                     actualizarContador();
+                    renderUserSidebar();
                     return;
                 }
                 if (member.clientId !== miAlias) {
@@ -1035,6 +1144,7 @@
                     }
                 }
                 actualizarContador();
+                renderUserSidebar();
             });
 
             // Cuando alguien se va (o cierra la pestaña):
@@ -1043,11 +1153,13 @@
                 if (cambio) {
                     miembrosConectados = miembrosConectados.filter(alias => alias !== member.clientId);
                     actualizarContador();
+                    renderUserSidebar();
                     return;
                 }
                 agregarMensajeSistema(`${settings.hideAliases ? '-' : '🔴'} <strong>${settings.hideAliases ? `⬤[${colorPorAlias(member.clientId)}]` : escaparHTML(member.clientId)}</strong> se ha desconectado.`);
                 miembrosConectados = miembrosConectados.filter(alias => alias !== member.clientId);
                 actualizarContador();
+                renderUserSidebar();
             });
 
             // MODIFICACIÓN 3: Decirle a Ably que nos meta en la lista de presentes de la sala
@@ -1192,6 +1304,7 @@
                     }
                 });
             }
+            renderUserSidebar();
         }
 
         function limpiarMensajesUsuario() {
