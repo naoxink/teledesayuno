@@ -7,56 +7,8 @@
     <!-- SDK de Ably para navegador -->
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
     <style>
-        /* ====== TEMAS VISUALES ====== */
-
-        /* 1. Cyberpunk (Tu oscuro original) */
-        :root, [data-theme="dark"] {
-            --bg: #121212;
-            --surface: #1e1e1e;
-            --text: #e0e0e0;
-            --accent: #00bcd4;
-            --border: #2d2d2d;
-            --msg-bg: #161616;
-            --input-bg: #252525;
-        }
-
-        /* 2. Modo Ofimática (Camuflaje total: clon de Excel/Word) */
-        [data-theme="office"] {
-            --bg: #f3f2f1;
-            --surface: #ffffff;
-            --text: #323130;
-            --accent: #107c41; /* Verde corporativo de Microsoft */
-            --border: #edebe9;
-            --msg-bg: #faf9f8;
-            --input-bg: #ffffff;
-        }
-
-        /* 3. Modo Corporativo (Estilo documentación técnica / Jira) */
-        [data-theme="corporate"] {
-            --bg: #f4f5f7;
-            --surface: #ffffff;
-            --text: #172b4d;
-            --accent: #0052cc; /* Azul Atlassian */
-            --border: #dfe1e6;
-            --msg-bg: #ffffff;
-            --input-bg: #fafbfc;
-        }
-        /* 4. Modo Terminal (Camuflaje informático clásico) 
-        Si alguien pasa por detrás, parece que estás ejecutando un script en Bash o editando con Vim */
-        [data-theme="terminal"] {
-            --bg: #0c0c0c;
-            --surface: #161616;
-            --text: #cccccc;
-            --accent: #00ff66; /* Verde fósforo de consola */
-            --border: #333333;
-            --msg-bg: #0c0c0c;
-            --input-bg: #1a1a1a;
-            font-family: 'Courier New', Courier, monospace; /* Forzamos fuente mono aquí */
-        }
-
-        /* 5. Modo IDE / VS Code (El camuflaje definitivo para ti)
-        Imita los colores del tema 'Dark+' de Visual Studio Code. Parecerá que estás revisando un archivo de configuración */
-        [data-theme="ide"] {
+        /* ====== TEMA VISUAL (VS Code / Dark+) ====== */
+        :root {
             --bg: #1e1e1e;
             --surface: #252526;
             --text: #d4d4d4;
@@ -64,36 +16,14 @@
             --border: #3c3c3c;
             --msg-bg: #1e1e1e;
             --input-bg: #2d2d2d;
-            font-family: 'Consolas', 'Monaco', monospace;
-        }
-
-        /* 6. Modo GitHub Light (Camuflaje de documentación)
-        Clona la paleta clara de GitHub. Parece que estás leyendo una Issue o revisando un Pull Request */
-        [data-theme="github"] {
-            --bg: #ffffff;
-            --surface: #f6h8fa;
-            --text: #24292f;
-            --accent: #0969da; /* Azul clásico de enlaces de GitHub */
-            --border: #d0d7de;
-            --msg-bg: #ffffff;
-            --input-bg: #ffffff;
-        }
-
-        /* 7. Modo Drácula (Estética pura)
-        Este no es para esconderse, es simplemente porque la paleta Dracula es obligatoria en cualquier herramienta de un dev */
-        [data-theme="dracula"] {
-            --bg: #282a36;
-            --surface: #44475a;
-            --text: #f8f8f2;
-            --accent: #ff79c6; /* Rosa Drácula */
-            --border: #6272a4;
-            --msg-bg: #21222c;
-            --input-bg: #282a36;
+            --line-hover: rgba(255, 255, 255, 0.06);
+            --font-mono: 'Consolas', 'Monaco', 'Menlo', 'Courier New', monospace;
         }
 
         /* ====== REAJUSTES DE TU CSS EXISTENTE ====== */
         body {
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
             background: var(--bg);
             color: var(--text);
             margin: 0;
@@ -102,7 +32,6 @@
             flex-direction: column;
             height: 100vh;
             box-sizing: border-box;
-            transition: background-color 0.2s, color 0.2s; /* Para que el cambio de tema sea suave */
         }
         #login, #chat-container {
             background: var(--surface);
@@ -154,7 +83,14 @@
             border-radius: 4px;
             font-size: .9rem;
         }
-        .msg { margin-bottom: 4px; line-height: 1.25; word-break: break-word; }
+        .msg {
+            margin-bottom: 4px;
+            padding: 1px 4px;
+            border-radius: 3px;
+            line-height: 1.25;
+            word-break: break-word;
+        }
+        .msg:hover { background: var(--line-hover); }
         .msg .time { color: #555; font-size: 0.75rem; margin-right: 6px; }
         .msg .system { color: #777; font-style: italic; font-size: 0.8rem; }
         .reply-preview {
@@ -278,16 +214,6 @@
         }
         .msg.mention-target .user {
             color: var(--accent);
-        }
-        #theme-select {
-            background: var(--surface);
-            color: var(--text);
-            border: 1px solid var(--border);
-            padding: 2px 6px;
-            font-size: 0.75rem;
-            border-radius: 4px;
-            cursor: pointer;
-            outline: none;
         }
         #settings-controls {
             position: fixed;
@@ -422,12 +348,7 @@
             user-select: auto; /* Permite volver a seleccionar el texto normalmente */
         }
 
-        /* ====== PANEL DE USUARIOS CONECTADOS ====== */
-        #chat-container.with-sidebar {
-            flex-direction: row;
-            max-width: 100%;
-            gap: 10px;
-        }
+        /* ====== PANEL DE USUARIOS CONECTADOS (compacto y desplegable) ====== */
         #chat-main {
             display: flex;
             flex-direction: column;
@@ -435,35 +356,65 @@
             min-width: 0;
             height: 100%;
         }
-        #user-sidebar {
-            width: 160px;
-            flex-shrink: 0;
-            display: flex;
-            flex-direction: column;
-            border-left: 1px solid var(--border);
-            padding-left: 10px;
+        #user-toggle {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.8rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            cursor: pointer;
         }
-        #user-sidebar h5 {
-            margin: 0 0 8px 0;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: .04em;
-            color: #888;
+        #user-toggle:hover { background: var(--line-hover); }
+        #user-toggle .dots { display: inline-flex; gap: 2px; }
+        #user-toggle .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
         }
+        #user-toggle .caret {
+            opacity: 0.6;
+            font-size: 0.7rem;
+            transition: transform 0.15s ease;
+        }
+        #user-toggle[aria-expanded="true"] .caret {
+            transform: rotate(180deg);
+        }
+        #user-panel {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 4px;
+            min-width: 160px;
+            max-height: 40vh;
+            overflow-y: auto;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-shadow: 0 10px 20px rgba(0,0,0,.25);
+            z-index: 30;
+            padding: 4px;
+        }
+        #user-panel[hidden] { display: none; }
         #user-list {
             list-style: none;
             margin: 0;
             padding: 0;
-            overflow-y: auto;
-            flex: 1;
         }
         #user-list li {
             display: flex;
             align-items: center;
             gap: 6px;
-            padding: 4px 0;
+            padding: 4px 6px;
+            border-radius: 3px;
             font-size: 0.85rem;
         }
+        #user-list li:hover { background: var(--line-hover); }
         #user-list li .dot {
             width: 8px;
             height: 8px;
@@ -481,28 +432,12 @@
             font-weight: 400;
             opacity: 0.6;
         }
-        @media (max-width: 640px) {
-            #user-sidebar {
-                display: none;
-            }
-        }
     </style>
-    <link rel="stylesheet" href="temas.css">
 </head>
 <body>
 
     <div id="settings-controls">
         <button id="settings-toggle" type="button" title="Ajustes" onclick="abrirModalConfiguracion()">⚙</button>
-        <select id="theme-select" onchange="seleccionarTema(this.value)">
-            <option value="dark">Cyberpunk (Oscuro)</option>
-            <!-- <option value="corporate">Corporativo (Teams)</option> -->
-            <option value="terminal">Consola (Bash)</option>
-            <option value="ide">Editor (VS Code)</option>
-            <!-- <option value="github">GitHub (Claro)</option> -->
-            <option value="dracula">Dracula (Aesthetic)</option>
-            <option value="nxk">nxk (Oscuro)</option>
-            <option value="glass">Crystal (Colorful)</option>
-        </select>
     </div>
 
     <div id="settings-modal" hidden>
@@ -586,9 +521,18 @@
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                 <div>
                     <span id="room-title" style="font-weight:bold; font-size:0.9rem; color:var(--accent);"></span>
-                    <span id="user-count" style="font-size:0.8rem; color:#777; margin-left:8px;"></span>
+                    <span style="font-size:0.75rem; color:#888; margin-left:8px;">Cifrado de extremo a extremo • Efímero</span>
                 </div>
-                <span style="font-size:0.75rem; color:#555;">Cifrado de extremo a extremo • Efímero</span>
+                <div style="position:relative;">
+                    <button id="user-toggle" type="button" aria-expanded="false" onclick="toggleUserPanel()">
+                        <span class="dots" id="user-toggle-dots"></span>
+                        <span id="user-count">0 conectados</span>
+                        <span class="caret">▾</span>
+                    </button>
+                    <div id="user-panel" hidden>
+                        <ul id="user-list"></ul>
+                    </div>
+                </div>
             </div>
             <div id="messages"></div>
             <div id="reply-preview" class="reply-preview" hidden></div>
@@ -597,10 +541,6 @@
                 <div id="mention-suggester" class="mention-suggester" hidden></div>
                 <button onclick="enviar()">Enviar</button>
             </div>
-        </div>
-        <div id="user-sidebar">
-            <h5>Conectados</h5>
-            <ul id="user-list"></ul>
         </div>
     </div>
 
@@ -653,8 +593,6 @@
                 
                 // Ponemos el cursor directamente en el campo de la contraseña
                 document.getElementById('password').focus();
-
-                document.getElementById('theme-select').value = localStorage.getItem('chat-theme') || 'dark';
             }
 
             const input = document.getElementById('msg-input');
@@ -753,9 +691,9 @@
         }
 
         function renderUserSidebar() {
-            const sidebar = document.getElementById('user-sidebar');
             const list = document.getElementById('user-list');
-            if (!sidebar || !list) return;
+            const dots = document.getElementById('user-toggle-dots');
+            if (!list || !dots) return;
 
             const todos = [...new Set([miAlias, ...miembrosConectados].filter(Boolean))]
                 .sort((a, b) => (a === miAlias ? -1 : b === miAlias ? 1 : a.localeCompare(b)));
@@ -769,7 +707,30 @@
                     <span class="name clickable" data-alias="${escaparHTML(alias)}" style="color:${color};">${escaparHTML(nombreMostrado)}</span>
                 </li>`;
             }).join('');
+
+            // Mostramos hasta 4 puntos de color en el botón compacto como avance visual
+            dots.innerHTML = todos.slice(0, 4).map(alias =>
+                `<span class="dot" style="background:${obtenerColorPorAlias(alias)};"></span>`
+            ).join('');
         }
+
+        function toggleUserPanel(forzarEstado) {
+            const panel = document.getElementById('user-panel');
+            const toggle = document.getElementById('user-toggle');
+            if (!panel || !toggle) return;
+            const abrir = typeof forzarEstado === 'boolean' ? forzarEstado : panel.hidden;
+            panel.hidden = !abrir;
+            toggle.setAttribute('aria-expanded', String(abrir));
+        }
+
+        document.addEventListener('click', (event) => {
+            const panel = document.getElementById('user-panel');
+            const toggle = document.getElementById('user-toggle');
+            if (!panel || panel.hidden || !toggle) return;
+            if (!panel.contains(event.target) && !toggle.contains(event.target)) {
+                toggleUserPanel(false);
+            }
+        });
 
         function highlightMentionSuggester(index) {
             const items = document.querySelectorAll('#mention-suggester .mention-item');
@@ -898,13 +859,6 @@
                     limpiarMensajesUsuario();
                     agregarMensajeSistema('Se han eliminado localmente todos los mensajes de usuarios.');
                     return false;
-                case '/theme':
-                    const nuevoTema = prompt('Introduce el nombre del tema (dark, office, corporate, terminal, ide, github, dracula):');
-                    if (nuevoTema) {
-                        seleccionarTema(nuevoTema);
-                        agregarMensajeSistema(`Tema cambiado a <strong>${nuevoTema}</strong>.`);
-                    }
-                    return false;
                 case '/alias':
                     let nuevoAlias = '';
                     if (texto.split(' ').length > 1) {
@@ -938,7 +892,6 @@
                 case '/help':
                     agregarMensajeSistema('Mostrando comandos disponibles. También puedes escribir /help para ver esta lista de nuevo.');
                     agregarMensajeSistema('- /clear - Limpiar mensajes de usuarios localmente');
-                    agregarMensajeSistema('- /theme - Cambiar tema visual');
                     agregarMensajeSistema('- /alias - Cambiar tu alias');
                     agregarMensajeSistema('- /shrug - Añadir emoticono ¯\\_(ツ)_/¯');
                     agregarMensajeSistema('- /lenny - Añadir emoticono ( ͡° ͜ʖ ͡°)');
@@ -1093,7 +1046,6 @@
             // 2. Transición de UI
             document.getElementById('login').style.display = 'none';
             document.getElementById('chat-container').style.display = 'flex';
-            document.getElementById('chat-container').classList.add('with-sidebar');
             document.getElementById('room-title').innerText = `#${salaId}`;
 
             tituloBase = `Teledesayuno #${salaId}`;
@@ -1138,7 +1090,7 @@
                     return;
                 }
                 if (member.clientId !== miAlias) {
-                    agregarMensajeSistema(`${settings.hideAliases ? '+' : '🟢'} <strong>${settings.hideAliases ? `⬤[${colorPorAlias(member.clientId)}]` : escaparHTML(member.clientId)}</strong> se ha conectado.`);
+                    agregarMensajeSistema(`${settings.hideAliases ? '+' : '🟢'} <strong>${settings.hideAliases ? `⬤[${obtenerColorPorAlias(member.clientId)}]` : escaparHTML(member.clientId)}</strong> se ha conectado.`);
                     if (!miembrosConectados.includes(member.clientId)) {
                         miembrosConectados.push(member.clientId);
                     }
@@ -1156,7 +1108,7 @@
                     renderUserSidebar();
                     return;
                 }
-                agregarMensajeSistema(`${settings.hideAliases ? '-' : '🔴'} <strong>${settings.hideAliases ? `⬤[${colorPorAlias(member.clientId)}]` : escaparHTML(member.clientId)}</strong> se ha desconectado.`);
+                agregarMensajeSistema(`${settings.hideAliases ? '-' : '🔴'} <strong>${settings.hideAliases ? `⬤[${obtenerColorPorAlias(member.clientId)}]` : escaparHTML(member.clientId)}</strong> se ha desconectado.`);
                 miembrosConectados = miembrosConectados.filter(alias => alias !== member.clientId);
                 actualizarContador();
                 renderUserSidebar();
@@ -1307,6 +1259,13 @@
             renderUserSidebar();
         }
 
+        function desplazarAlFinalSiEnfocado(box) {
+            // Si la ventana no tiene el foco, no movemos el scroll: así no hace falta
+            // volver arriba manualmente para leer lo que se ha perdido al recuperar el foco.
+            if (!tieneElFoco) return;
+            box.scrollTop = box.scrollHeight;
+        }
+
         function limpiarMensajesUsuario() {
             const box = document.getElementById('messages');
             const mensajes = Array.from(box.querySelectorAll('.msg'));
@@ -1383,8 +1342,8 @@
             }
 
             const nuevo = box.lastElementChild;
-            
-            box.scrollTop = box.scrollHeight;
+
+            desplazarAlFinalSiEnfocado(box);
         }
 
         function contieneMiMencion(texto) {
@@ -1419,7 +1378,7 @@
         function agregarMensajeSistema(texto) {
             const box = document.getElementById('messages');
             box.innerHTML += `<div class="msg"><span class="system">${texto}</span></div>`;
-            box.scrollTop = box.scrollHeight;
+            desplazarAlFinalSiEnfocado(box);
         }
 
         function establecerReplyTarget(target) {
@@ -1483,23 +1442,7 @@
             return `${animal} ${adjetivo}`;
         }
 
-        // 1. FUNCIÓN PARA CAMBIAR Y GUARDAR EL TEMA
-        function seleccionarTema(tema) {
-            // Aplicamos el atributo al nodo HTML principal
-            document.documentElement.setAttribute('data-theme', tema);
-            // Guardamos la preferencia
-            localStorage.setItem('chat-theme', tema);
-            
-            // Sincronizamos el valor del select por si acaso
-            const select = document.getElementById('theme-select');
-            if (select) select.value = tema;
-        }
-
-        // 2. APLICACIÓN INMEDIATA (Pon esto al principio de tu <script> para evitar el "chispazo" blanco/oscuro)
-        const temaGuardado = localStorage.getItem('chat-theme') || 'dark';
-        seleccionarTema(temaGuardado);
-
-        // 3. SELECCIÓN DE COLOR ADAPTATIVA (Sustituye tu función existente)
+        // SELECCIÓN DE COLOR ADAPTATIVA (mismo alias -> mismo color siempre)
         function obtenerColorPorAlias(str) {
             const PALETA = [
                 "#ef4444", // rojo
@@ -1549,7 +1492,7 @@
                 if (err) return console.error("Error al obtener presencia:", err);
                 
                 const conectados = members.length;
-                const texto = `• ${conectados} conectado${conectados !== 1 ? 's' : ''}`;
+                const texto = ` ${conectados} conectado${conectados !== 1 ? 's' : ''}`;
                 
                 document.getElementById('user-count').innerText = texto;
             });
