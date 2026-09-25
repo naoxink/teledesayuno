@@ -20,6 +20,39 @@
             --font-mono: 'Consolas', 'Monaco', 'Menlo', 'Courier New', monospace;
         }
 
+        /* Se aplica a toda la página */
+        html {
+          /* Ancho de la barra: auto | thin | none */
+          scrollbar-width: thin;
+        
+          /* Formato: <color-del-tirador> <color-del-fondo> */
+          scrollbar-color: --var(surface) --var(bg);
+        }
+        
+        /* 1. Ancho y alto (para barras horizontales) de la barra */
+        ::-webkit-scrollbar {
+          width: 10px;
+          height: 10px;
+        }
+        
+        /* 2. Fondo / Pista sobre la que se mueve el tirador */
+        ::-webkit-scrollbar-track {
+          background: --var(bg);
+          border-radius: 8px;
+        }
+        
+        /* 3. El tirador (la parte desplazable) */
+        ::-webkit-scrollbar-thumb {
+          background: --var(surface);
+          border-radius: 8px;
+          border: 2px solid --var(bg); /* Crea un margen visual interno respecto a la pista */
+        }
+        
+        /* 4. Estado hover del tirador */
+        ::-webkit-scrollbar-thumb:hover {
+          background: --var(text);
+        }
+
         /* ====== REAJUSTES DE TU CSS EXISTENTE ====== */
         body {
             font-family: var(--font-mono);
