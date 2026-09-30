@@ -20,37 +20,28 @@
             --font-mono: 'Consolas', 'Monaco', 'Menlo', 'Courier New', monospace;
         }
 
-        /* Se aplica a toda la página */
+        /* Scrollbar (Firefox): <color-del-tirador> <color-de-la-pista> */
         html {
-          /* Ancho de la barra: auto | thin | none */
-          scrollbar-width: thin;
-        
-          /* Formato: <color-del-tirador> <color-del-fondo> */
-          scrollbar-color: --var(surface) --var(bg);
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) var(--bg);
         }
-        
-        /* 1. Ancho y alto (para barras horizontales) de la barra */
+
+        /* Scrollbar (WebKit/Blink) */
         ::-webkit-scrollbar {
-          width: 10px;
-          height: 10px;
+            width: 10px;
+            height: 10px;
         }
-        
-        /* 2. Fondo / Pista sobre la que se mueve el tirador */
         ::-webkit-scrollbar-track {
-          background: --var(bg);
-          border-radius: 8px;
+            background: var(--bg);
+            border-radius: 8px;
         }
-        
-        /* 3. El tirador (la parte desplazable) */
         ::-webkit-scrollbar-thumb {
-          background: --var(surface);
-          border-radius: 8px;
-          border: 2px solid --var(bg); /* Crea un margen visual interno respecto a la pista */
+            background: var(--border);
+            border-radius: 8px;
+            border: 2px solid var(--bg);
         }
-        
-        /* 4. Estado hover del tirador */
         ::-webkit-scrollbar-thumb:hover {
-          background: --var(text);
+            background: var(--text);
         }
 
         /* ====== REAJUSTES DE TU CSS EXISTENTE ====== */
@@ -90,7 +81,7 @@
         label { font-size: 0.8rem; margin-bottom: 4px; color: #888; }
 
         input, button {
-            background: var(--input-bg); /* Antes estaba fijo en #252525 */
+            background: var(--input-bg);
             border: 1px solid var(--border);
             color: var(--text);
             padding: 6px 10px;
@@ -110,11 +101,15 @@
             flex: 1;
             overflow-y: auto;
             border: 1px solid var(--border);
-            background: var(--msg-bg); /* Antes estaba fijo en #161616 */
+            background: var(--msg-bg);
             padding: 8px;
             margin-bottom: 8px;
             border-radius: 4px;
             font-size: .9rem;
+        }
+        #messages.drag-over {
+            border-color: var(--accent);
+            border-style: dashed;
         }
         .msg {
             margin-bottom: 4px;
@@ -126,6 +121,13 @@
         .msg:hover { background: var(--line-hover); }
         .msg .time { color: #555; font-size: 0.75rem; margin-right: 6px; }
         .msg .system { color: #777; font-style: italic; font-size: 0.8rem; }
+        .msg-img {
+            display: block;
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 4px;
+            margin-top: 4px;
+        }
         .reply-preview {
             display: none;
             border: 1px solid var(--accent);
@@ -201,7 +203,13 @@
             opacity: 0.85;
         }
         #input-area { display: flex; gap: 4px; position: relative; }
-        #input-area input { flex: 1; }
+        #input-area input[type="text"] { flex: 1; }
+        #attach-button {
+            background: var(--input-bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            font-weight: normal;
+        }
         #mention-suggester {
             position: absolute;
             left: 0;
@@ -349,7 +357,7 @@
         .msg-item {
             opacity: 1;
             transform: scale(1);
-            transition: opacity 1s ease-out, transform 1s ease-out; 
+            transition: opacity 1s ease-out, transform 1s ease-out;
         }
 
         /* Forzamos el ocultamiento sin importar qué otra clase tenga el div */
@@ -370,15 +378,15 @@
         /* Estado inicial: texto emborronado */
         .spoiler-text {
             filter: blur(5px);
-            transition: filter 0.3s ease; /* Suaviza la transición al pasar el cursor */
-            cursor: pointer; /* Cambia el cursor para indicar que es interactivo */
-            user-select: none; /* Evita que se seleccione el texto por accidente estando oculto */
+            transition: filter 0.3s ease;
+            cursor: pointer;
+            user-select: none;
         }
 
         /* Estado al pasar el cursor (hover): el texto se vuelve legible */
         .spoiler-text:hover {
             filter: blur(0);
-            user-select: auto; /* Permite volver a seleccionar el texto normalmente */
+            user-select: auto;
         }
 
         /* ====== PANEL DE USUARIOS CONECTADOS (compacto y desplegable) ====== */
@@ -465,11 +473,10 @@
             font-weight: 400;
             opacity: 0.6;
         }
-        .unread-bar
-         {
+        .unread-bar {
             text-align: center;
             background-color: darkslategray;
-         }
+        }
     </style>
 </head>
 <body>
@@ -515,13 +522,13 @@
             <div class="settings-row">
                 <span class="settings-label">Mensajes con autodestrucción</span>
                 <label class="settings-switch">
-                    <input id="setting-selfdestructMessages" type="checkbox" checked onchange="toggleSetting('selfdestructMessages', this.checked)">
+                    <input id="setting-selfdestructMessages" type="checkbox" onchange="toggleSetting('selfdestructMessages', this.checked)">
                     <span class="settings-slider"></span>
                 </label>
             </div>
             <div class="settings-row disabled">
                 <span class="settings-label">Segundos de autodestrucción</span>
-                <input id="setting-selfDestructSeconds" disabled="true" type="number" value="60" onchange="toggleSetting('selfDestructSeconds', this.value)">
+                <input id="setting-selfDestructSeconds" disabled="true" type="number" min="5" value="60" onchange="toggleSetting('selfDestructSeconds', this.value)">
             </div>
             <div class="settings-row">
                 <span class="settings-label">Ocultar aliases</span>
@@ -575,6 +582,9 @@
             <div id="messages"></div>
             <div id="reply-preview" class="reply-preview" hidden></div>
             <div id="input-area" class="chat-input-wrapper">
+                <button id="attach-button" type="button" title="Adjuntar imagen" onclick="document.getElementById('file-input').click()">📎</button>
+                <input type="file" id="file-input" accept="image/*" hidden
+                       onchange="if (this.files[0]) enviarImagen(this.files[0]); this.value='';">
                 <input type="text" id="msg-input" placeholder="Mensaje seguro..." onkeypress="if(event.key==='Enter') enviar()">
                 <div id="mention-suggester" class="mention-suggester" hidden></div>
                 <button onclick="enviar()">Enviar</button>
@@ -605,7 +615,8 @@
         let mentionNavigationActive = false;
         let replyTarget = null;
         const mensajesPorId = {};
-        const sonidoBase64 = "data:audio/wav;base64,UklGRtQEAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YbAEAAB/vuHWo2AqHDt4ud7YqWYvHDdys9zarmwzHTNsrtnbs3I4HjBmqNbct3g8Hy1hotPdvH5BIStbnM/dwIRHIylWlsvdw4pMJSdRkMfcx5BRKCZNisLbypZXKyVIhL7azJtdLiREf7nYz6BiMiRAebTW0aVoNSQ9c6/U0qpuOSU6bqrR065zPiY3aKTP1LJ5Qic0Y5/L1bZ/RykyXpnI1bqETCswWpTE1L2JUC0vVY/A1MCOVS8uUYm808OUWzItTYS40sWYYDUsSX+00MedZTksRnmvzsmiajwtQ3SqzMqmb0AtQG+mysuqdEQuPWuhx8yueUgvO2acxMyxfkwxOWGXwcy0g1AzOF2Svsy3iFU1N1mNusy6jVk3NlWItsu8kV46NVKDssm+lmM9NU9+rsjAmmdANUx6qsbBnmxDNUl1psTDonFGNkZxosLDpXVKNkRtnb/EqXpOOEJomb3ErH5ROUFllLrEr4NVOz9hkLfEsYdZPT5di7TDs4tdPz5ah7DCtY9iQT1Xg63Bt5NmRD1Uf6nAuZdqRz1ReqW+uppuSj1PdqG8u55yTT5Ncp26vKF2UD9Lb5q4vKR7U0BJa5a1vKZ+V0FIaJKzvKmCWkNHZI6wvKuGXkVGYYqtu62KYkdFXoaquq+NZUlFXIKnubCRaUtFWX+kuLGUbU5FV3ugtrKXcFBGVXedtLOadFNGU3SZsrSceFZHUnGWsLSfe1lIUG6TrrShflxJT2uPrLSjgl9LTmiMqbOlhWJNTmWIp7OniGZOTWOFpLKoi2lQTWGCobGpjmxSTV9+nq+qkW9VTV17m66rk3JXTlt4mKyrlnVaT1p2lausmHlcT1hzkqmsmnxfUFdwj6esnH9hUldujaWrnYFkU1ZriqOrn4RnVFZph6CqoIdqVlVnhJ6poYlsWFVmgZuoooxvWlVkf5mno45yXFZifJemo5B0XlZheZSlpJJ3YFdgd5GjpJN6YlhfdY+hpJV8ZFlec4ygo5Z+Z1pecYqeo5iBaVtdb4ico5mDa1xdbYWaopqFbl5dbIOYoZqHcF9daoGWoJuJcmFeaX+Un5uLdGNeaHySnpyMd2VfZ3uQnZyOeWZfZnmNm5yPe2hgZneLmpyQfWphZXWJmJuRfmxiZXSHl5uSgG5jZXOFlZqTgnBkZXGEk5qThHJmZXCCkpmUhXNnZW+AkJiUhnVoZm9/jpeUiHdqZm59jZaUiXlrZ218i5WUinptaG16iZOUi3xuaG15iJKUi31waWx4hpGTjH5xamx3hZCTjIBza212g46SjYF0bG11go2RjYJ2bW11gYyQjYN3b210gIqQjYR4cG50f4mPjYV5cW90foiOjYV7cm9zfYeNjIZ8c3BzfIWMjIZ9dHFze4SLi4Z+dXJ0e4OKi4d+d3J0eoKJiod/eHN0eoGIioeAeXR1eYCHiYaAenV1eYCGiIaBenZ2eX+Fh4aBe3d2eX+Eh4aBfHh3eX6DhoWCfXl4eX6ChYWCfXp4en2BhISCfnp5en2Bg4OBfnt6e32AgoOBf3x7e32AgoKBf317fH1/gYGBf318fH1/gIGAf359fX5/gICAf35+fn5/f39/f35+fn4="; 
+        const ETIQUETA_IMAGEN = '📷 Imagen';
+        const sonidoBase64 = "data:audio/wav;base64,UklGRtQEAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YbAEAAB/vuHWo2AqHDt4ud7YqWYvHDdys9zarmwzHTNsrtnbs3I4HjBmqNbct3g8Hy1hotPdvH5BIStbnM/dwIRHIylWlsvdw4pMJSdRkMfcx5BRKCZNisLbypZXKyVIhL7azJtdLiREf7nYz6BiMiRAebTW0aVoNSQ9c6/U0qpuOSU6bqrR065zPiY3aKTP1LJ5Qic0Y5/L1bZ/RykyXpnI1bqETCswWpTE1L2JUC0vVY/A1MCOVS8uUYm808OUWzItTYS40sWYYDUsSX+00MedZTksRnmvzsmiajwtQ3SqzMqmb0AtQG+mysuqdEQuPWuhx8yueUgvO2acxMyxfkwxOWGXwcy0g1AzOF2Svsy3iFU1N1mNusy6jVk3NlWItsu8kV46NVKDssm+lmM9NU9+rsjAmmdANUx6qsbBnmxDNUl1psTDonFGNkZxosLDpXVKNkRtnb/EqXpOOEJomb3ErH5ROUFllLrEr4NVOz9hkLfEsYdZPT5di7TDs4tdPz5ah7DCtY9iQT1Xg63Bt5NmRD1Uf6nAuZdqRz1ReqW+uppuSj1PdqG8u55yTT5Ncp26vKF2UD9Lb5q4vKR7U0BJa5a1vKZ+V0FIaJKzvKmCWkNHZI6wvKuGXkVGYYqtu62KYkdFXoaquq+NZUlFXIKnubCRaUtFWX+kuLGUbU5FV3ugtrKXcFBGVXedtLOadFNGU3SZsrSceFZHUnGWsLSfe1lIUG6TrrShflxJT2uPrLSjgl9LTmiMqbOlhWJNTmWIp7OniGZOTWOFpLKoi2lQTWGCobGpjmxSTV9+nq+qkW9VTV17m66rk3JXTlt4mKyrlnVaT1p2lausmHlcT1hzkqmsmnxfUFdwj6esnH9hUldujaWrnYFkU1ZriqOrn4RnVFZph6CqoIdqVlVnhJ6poYlsWFVmgZuoooxvWlVkf5mno45yXFZifJemo5B0XlZheZSlpJJ3YFdgd5GjpJN6YlhfdY+hpJV8ZFlec4ygo5Z+Z1pecYqeo5iBaVtdb4ico5mDa1xdbYWaopqFbl5dbIOYoZqHcF9daoGWoJuJcmFeaX+Un5uLdGNeaHySnpyMd2VfZ3uQnZyOeWZfZnmNm5yPe2hgZneLmpyQfWphZXWJmJuRfmxiZXSHl5uSgG5jZXOFlZqTgnBkZXGEk5qThHJmZXCCkpmUhXNnZW+AkJiUhnVoZm9/jpeUiHdqZm59jZaUiXlrZ218i5WUinptaG16iZOUi3xuaG15iJKUi31waWx4hpGTjH5xamx3hZCTjIBza212g46SjYF0bG11go2RjYJ2bW11gYyQjYN3b210gIqQjYR4cG50f4mPjYV5cW90foiOjYV7cm9zfYeNjIZ8c3BzfIWMjIZ9dHFze4SLi4Z+dXJ0e4OKi4d+d3J0eoKJiod/eHN0eoGIioeAeXR1eYCHiYaAenV1eYCGiIaBenZ2eX+Fh4aBe3d2eX+Eh4aBfHh3eX6DhoWCfXl4eX6ChYWCfXp4en2BhISCfnp5en2Bg4OBfnt6e32AgoOBf3x7e32AgoKBf317fH1/gYGBf318fH1/gIGAf359fX5/gICAf35+fn5/f39/f35+fn4=";
         const sonidoNotificacion = crearAudioDesdeBase64(sonidoBase64);
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -613,23 +624,17 @@
 
             // Leemos el hash de la URL eliminando la '#' inicial
             const hash = window.location.hash.trim();
-            
+
             if (hash && hash.length > 1) {
-                // decodeURIComponent limpia caracteres raros o espacios en la URL
                 const salaId = decodeURIComponent(hash.substring(1)).toLowerCase();
-                
-                // Rellenamos el input invisible (sigue haciendo falta para la función conectar)
+
                 document.getElementById('room-id').value = salaId;
-                
-                // Ocultamos el input original
                 document.getElementById('room-group').style.display = 'none';
-                
-                // NUEVO: Activamos y pintamos el preview en azul/cyan
+
                 const preview = document.getElementById('room-preview');
                 preview.innerText = `#${salaId}`;
                 preview.style.display = 'block';
-                
-                // Ponemos el cursor directamente en el campo de la contraseña
+
                 document.getElementById('password').focus();
             }
 
@@ -637,8 +642,33 @@
             input.addEventListener('input', handleMentionInput);
             input.addEventListener('keydown', handleMentionKeydown);
 
+            // Pegar imágenes desde el portapapeles
+            input.addEventListener('paste', (e) => {
+                const items = e.clipboardData ? [...e.clipboardData.items] : [];
+                const item = items.find(i => i.type.startsWith('image/'));
+                if (item) {
+                    e.preventDefault();
+                    const file = item.getAsFile();
+                    if (file) enviarImagen(file);
+                }
+            });
+
             // Event delegation para clicks en .clickable y .reply-button dentro de #messages
             const messagesBox = document.getElementById('messages');
+
+            // Arrastrar y soltar imágenes sobre la zona de mensajes
+            messagesBox.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                messagesBox.classList.add('drag-over');
+            });
+            messagesBox.addEventListener('dragleave', () => messagesBox.classList.remove('drag-over'));
+            messagesBox.addEventListener('drop', (e) => {
+                e.preventDefault();
+                messagesBox.classList.remove('drag-over');
+                const file = [...e.dataTransfer.files].find(f => f.type.startsWith('image/'));
+                if (file) enviarImagen(file);
+            });
+
             messagesBox.addEventListener('mousedown', (event) => {
                 const clickable = event.target.closest('.clickable');
                 if (clickable) {
@@ -647,7 +677,7 @@
                     if (alias) insertarMention(alias);
                 }
             });
-            
+
             messagesBox.addEventListener('click', (event) => {
                 const button = event.target.closest('.reply-button');
                 if (button) {
@@ -671,7 +701,18 @@
                     if (alias) insertarMention(alias);
                 }
             });
+
+            // Habilitar/deshabilitar el campo de segundos según el interruptor de autodestrucción
+            document.querySelector('#setting-selfdestructMessages').addEventListener('change', (e) => {
+                sincronizarCampoAutodestruccion(e.target.checked);
+            });
         });
+
+        function sincronizarCampoAutodestruccion(activo) {
+            const campo = document.querySelector('#setting-selfDestructSeconds');
+            campo.parentNode.classList.toggle('disabled', !activo);
+            campo.disabled = !activo;
+        }
 
         function crearAudioDesdeBase64(base64Data) {
             try {
@@ -679,11 +720,11 @@
                 const tipoMime = partes[0].split(':')[1];
                 const byteCharacters = atob(partes[1]);
                 const byteNumbers = new Array(byteCharacters.length);
-                
+
                 for (let i = 0; i < byteCharacters.length; i++) {
                     byteNumbers[i] = byteCharacters.charCodeAt(i);
                 }
-                
+
                 const byteArray = new Uint8Array(byteNumbers);
                 const blob = new Blob([byteArray], { type: tipoMime });
                 return new Audio(URL.createObjectURL(blob));
@@ -694,17 +735,16 @@
         }
 
         function reproducirSonido() {
-            if (!sonidoNotificacion) return false
+            if (!sonidoNotificacion) return false;
             // Reiniciamos el tiempo a 0 para que no se ahogue si llegan varios mensajes seguidos
             sonidoNotificacion.currentTime = 0;
-            
-            // El bloque catch evita que la consola se llene de errores rojos 
-            // si el navegador bloquea el Autoplay por falta de interacción.
+
+            // Evita errores rojos si el navegador bloquea el Autoplay
             sonidoNotificacion.play().catch(error => {
                 console.warn('El navegador bloqueó el sonido:', error);
             });
         }
-        
+
         function actualizarMiembrosConectados(members) {
             miembrosConectados = (members || [])
                 .map(member => member.clientId)
@@ -746,7 +786,7 @@
                 </li>`;
             }).join('');
 
-            // Mostramos hasta 4 puntos de color en el botón compacto como avance visual
+            // Hasta 4 puntos de color en el botón compacto como avance visual
             dots.innerHTML = todos.slice(0, 4).map(alias =>
                 `<span class="dot" style="background:${obtenerColorPorAlias(alias)};"></span>`
             ).join('');
@@ -816,7 +856,7 @@
             const before = input.value.slice(0, caret);
             const after = input.value.slice(caret);
             const match = before.match(/(?:^|\s)@([^\s@]*)$/);
-            
+
             if (match) {
                 // Estamos escribiendo una mención: reemplazarla
                 const start = before.lastIndexOf('@');
@@ -926,16 +966,17 @@
                     const unflip = '┬─┬ ノ( ゜-゜ノ)';
                     return `${unflip} ${texto.replace(cmd, '').trim()}`;
                 case '/spoiler':
-                    return { tipo: 'spoiler', texto: texto.replace(cmd, '').trim() }
+                    return { tipo: 'spoiler', texto: texto.replace(cmd, '').trim() };
                 case '/help':
                     agregarMensajeSistema('Mostrando comandos disponibles. También puedes escribir /help para ver esta lista de nuevo.');
                     agregarMensajeSistema('- /clear - Limpiar mensajes de usuarios localmente');
                     agregarMensajeSistema('- /alias - Cambiar tu alias');
                     agregarMensajeSistema('- /shrug - Añadir emoticono ¯\\_(ツ)_/¯');
                     agregarMensajeSistema('- /lenny - Añadir emoticono ( ͡° ͜ʖ ͡°)');
-                    agregarMensajeSistema('- /tableflip - Añadir emoticono (╯°□°）╯︵ �━┻');
+                    agregarMensajeSistema('- /tableflip - Añadir emoticono (╯°□°）╯︵ ┻━┻');
                     agregarMensajeSistema('- /unflip - Añadir emoticono ┬─┬ ノ( ゜-゜ノ)');
                     agregarMensajeSistema('- /spoiler - Envía un mensaje borroso');
+                    agregarMensajeSistema('- Imágenes: pega con Ctrl+V, arrastra sobre el chat o usa el botón 📎');
                     return false;
             }
 
@@ -965,33 +1006,100 @@
             );
         }
 
+        // Convierte bytes a base64 por bloques (el spread con payloads grandes desborda la pila)
+        function bytesABase64(bytes) {
+            let bin = '';
+            for (let i = 0; i < bytes.length; i += 0x8000) {
+                bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+            }
+            return btoa(bin);
+        }
+
         async function cifrarMensaje(texto, clave) {
             const iv = crypto.getRandomValues(new Uint8Array(12)); // IV de 12 bytes para AES-GCM
             const bufferCifrado = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, clave, encoder.encode(texto));
             return {
-                msg: btoa(String.fromCharCode(...new Uint8Array(bufferCifrado))),
-                iv: btoa(String.fromCharCode(...iv))
+                msg: bytesABase64(new Uint8Array(bufferCifrado)),
+                iv: bytesABase64(iv)
             };
         }
 
         async function descifrarMensaje(ciphertextBase64, ivBase64, clave) {
             try {
-                const ciphertext = new Uint8Array(atob(ciphertextBase64).split("").map(c => c.charCodeAt(0)));
-                const iv = new Uint8Array(atob(ivBase64).split("").map(c => c.charCodeAt(0)));
+                const ciphertext = Uint8Array.from(atob(ciphertextBase64), c => c.charCodeAt(0));
+                const iv = Uint8Array.from(atob(ivBase64), c => c.charCodeAt(0));
                 const bufferDescifrado = await crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, clave, ciphertext);
                 return decoder.decode(bufferDescifrado);
             } catch (e) {
-                agregarMensajeSistema('< No se ha podido descifrar el mensaje. Clave inválida >')
+                agregarMensajeSistema('< No se ha podido descifrar el mensaje. Clave inválida >');
                 throw new Error("Clave inválida");
+            }
+        }
+
+        // ====== IMÁGENES ======
+        // Ably limita el mensaje a ~64 KB: comprimimos para que, tras JSON + AES-GCM + base64, quepa.
+        async function comprimirImagen(file, maxLado = 1024, maxChars = 35000) {
+            const bitmap = await createImageBitmap(file);
+            let escala = Math.min(1, maxLado / Math.max(bitmap.width, bitmap.height));
+            let calidad = 0.7;
+
+            for (let i = 0; i < 10; i++) {
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.max(1, Math.round(bitmap.width * escala));
+                canvas.height = Math.max(1, Math.round(bitmap.height * escala));
+                const ctx = canvas.getContext('2d');
+                // Fondo blanco: JPEG no admite transparencia (PNG con alfa saldrían en negro)
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                const dataUrl = canvas.toDataURL('image/jpeg', calidad);
+                if (dataUrl.length <= maxChars) {
+                    bitmap.close && bitmap.close();
+                    return dataUrl;
+                }
+                escala *= 0.8;
+                calidad = Math.max(0.4, calidad - 0.05);
+            }
+            bitmap.close && bitmap.close();
+            throw new Error('la imagen es demasiado grande');
+        }
+
+        async function enviarImagen(file) {
+            if (!canalGlobal || !file) return;
+            try {
+                const dataUrl = await comprimirImagen(file);
+                const paquete = {
+                    id: generarIdMensaje(),
+                    autor: miAlias,
+                    spoiler: false,
+                    texto: '',
+                    imagen: dataUrl
+                };
+                if (replyTarget) {
+                    paquete.replyTo = {
+                        id: replyTarget.id,
+                        autor: replyTarget.autor,
+                        texto: replyTarget.texto
+                    };
+                    cancelarReply();
+                }
+                const payloadCifrado = await cifrarMensaje(JSON.stringify(paquete), claveCriptografica);
+                canalGlobal.publish('msg', payloadCifrado);
+            } catch (e) {
+                agregarMensajeSistema('No se pudo enviar la imagen: ' + escaparHTML(e.message || String(e)));
             }
         }
 
         function resetearConfiguracion() {
             settings = { ...configuracionPorDefecto };
             document.getElementById('setting-notifications').checked = settings.allowNotifications;
+            document.getElementById('setting-sound').checked = settings.allowSound;
             document.getElementById('setting-title').checked = settings.changeTitleOnNewMessages;
             document.getElementById('setting-blur').checked = settings.blurContentOnFocusLoss;
             document.getElementById('setting-selfdestructMessages').checked = settings.selfdestructMessages;
+            document.getElementById('setting-hide-aliases').checked = settings.hideAliases;
+            document.getElementById('setting-selfDestructSeconds').value = settings.selfDestructSeconds;
+            sincronizarCampoAutodestruccion(settings.selfdestructMessages);
             aplicarEstadoConfiguracion();
         }
 
@@ -1010,6 +1118,10 @@
         }
 
         function toggleSetting(clave, valor) {
+            if (clave === 'selfDestructSeconds') {
+                valor = Math.max(5, Number(valor) || configuracionPorDefecto.selfDestructSeconds);
+                document.getElementById('setting-selfDestructSeconds').value = valor;
+            }
             settings[clave] = valor;
 
             if (clave === 'allowNotifications' && valor && window.Notification && Notification.permission === 'default') {
@@ -1031,28 +1143,22 @@
             if (!elemento.parentNode || elemento.classList.contains('fade-out')) return;
 
             elemento.classList.add('fade-out');
-            
+
             if (usarLimpiezaFondo) {
                 elemento.classList.add('background-cleanup');
             }
 
-            // 1. Manejador de evento blindado
+            // Solo actuamos si la transición que terminó es del PROPIO elemento y es la de opacidad
             const alTerminarTransicion = (e) => {
-                // Solo actuamos si la transición que terminó es del PROPIO elemento y es la de opacidad
                 if (e.target === elemento && e.propertyName === 'opacity') {
                     elemento.removeEventListener('transitionend', alTerminarTransicion);
                     elemento.remove();
                 }
             };
-
-            // Quitamos el { once: true } porque si un hijo dispara el evento antes, 
-            // consumiría el "once" y nos quedaríamos sin listener.
             elemento.addEventListener('transitionend', alTerminarTransicion);
 
-            // 2. Failsafe (Plan B)
-            // Si por cualquier motivo el CSS falla o el navegador bloquea el evento,
-            // forzamos el borrado un poco después de lo que dura la animación.
-            const tiempoSeguridad = usarLimpiezaFondo ? 100 : 1500; // 100ms fondo, 1.5s normal
+            // Failsafe: si el navegador bloquea el evento, forzamos el borrado
+            const tiempoSeguridad = usarLimpiezaFondo ? 100 : 1500;
             setTimeout(() => {
                 if (elemento.parentNode) {
                     elemento.removeEventListener('transitionend', alTerminarTransicion);
@@ -1077,10 +1183,6 @@
             // 1. Derivar clave criptográfica simétrica
             claveCriptografica = await generarClave(password, salaId);
 
-            if (!miAlias) {
-                miAlias = generarAliasAleatorio();
-            }
-
             // 2. Transición de UI
             document.getElementById('login').style.display = 'none';
             document.getElementById('chat-container').style.display = 'flex';
@@ -1089,33 +1191,30 @@
             tituloBase = `Teledesayuno #${salaId}`;
             document.title = tituloBase;
 
-            // 1. Instanciamos Ably sin clientId global
+            // 3. Instanciamos Ably sin clientId global
             const ably = new Ably.Realtime({ key: ABLY_KEY });
             canalGlobal = ably.channels.get(`sala-${salaId}`);
 
-            // 2. Traemos los usuarios conectados actuales antes de decidir nuestro alias
+            // 4. Traemos los usuarios conectados actuales antes de decidir nuestro alias
             const miembrosActuales = await new Promise((resolve) => {
                 canalGlobal.presence.get((err, members) => resolve(members || []));
             });
 
             actualizarMiembrosConectados(miembrosActuales);
 
-            // 3. Generamos el alias base y comprobamos si ya está ocupado en la sala
+            // 5. Generamos el alias base y comprobamos si ya está ocupado en la sala
             const aliasBase = generarAliasAleatorio();
             const estaRepetido = miembrosActuales.some(m => m.clientId === aliasBase);
 
             if (estaRepetido) {
-                // Si ya hay un "Mapache Ninja" dentro, a nosotros nos añade el número
                 const num = Math.floor(10 + Math.random() * 90);
                 miAlias = `${aliasBase} #${num}`;
             } else {
-                // Si la pista está libre, nos quedamos con el alias limpio
                 miAlias = aliasBase;
             }
-            agregarMensajeSistema(`Has entrado a la sala. Tu alias temporal es: <strong style="color:${obtenerColorPorAlias(miAlias)}">${settings.hideAliases ? '⬤' : miAlias}</strong>`);
+            agregarMensajeSistema(`Has entrado a la sala. Tu alias temporal es: <strong style="color:${obtenerColorPorAlias(miAlias)}">${settings.hideAliases ? '⬤' : escaparHTML(miAlias)}</strong>`);
             renderUserSidebar();
 
-            // MODIFICACIÓN 2: Escuchar quién entra y quién sale de la sala
             // Cuando alguien entra:
             canalGlobal.presence.subscribe('enter', (member) => {
                 const cambio = procesarEventoCambioAlias('enter', member.clientId);
@@ -1152,16 +1251,14 @@
                 renderUserSidebar();
             });
 
-            // MODIFICACIÓN 3: Decirle a Ably que nos meta en la lista de presentes de la sala
+            // Entrar en la lista de presentes de la sala
             canalGlobal.presence.enterClient(miAlias);
             actualizarContador();
 
             // Escuchar mensajes entrantes de Ably
             canalGlobal.subscribe('msg', async (item) => {
                 try {
-                    // El payload viene en item.data
                     const textoDescifrado = await descifrarMensaje(item.data.msg, item.data.iv, claveCriptografica);
-                    // Parseamos el JSON que viene de dentro del escudo criptográfico
                     const datos = JSON.parse(textoDescifrado);
 
                     if (datos.tipo === 'alias-change') {
@@ -1171,11 +1268,10 @@
                     }
 
                     if (datos.autor !== miAlias && !tieneElFoco) {
-                        // 1. Incrementamos el contador local
                         unreadCount++;
 
                         if (unreadCount === 1) {
-                            agregarBarraSinLeer()
+                            agregarBarraSinLeer();
                         }
 
                         if (settings.changeTitleOnNewMessages) {
@@ -1183,12 +1279,12 @@
                         }
 
                         if (settings.allowSound) {
-                            reproducirSonido()
+                            reproducirSonido();
                         }
 
-                        if (settings.allowNotifications && Notification.permission === "granted") {
+                        if (settings.allowNotifications && window.Notification && Notification.permission === "granted") {
                             const notification = new Notification(`#${salaId} - ${datos.autor}`, {
-                                body: datos.texto,
+                                body: datos.texto || (datos.imagen ? ETIQUETA_IMAGEN : ''),
                                 tag: 'chat-notification',
                                 renotify: true
                             });
@@ -1200,10 +1296,8 @@
                         }
                     }
 
-                    // Pasamos el autor y el texto a la pantalla
-                    agregarMensajePantalla(datos.autor, datos.texto, datos.replyTo ?? null, datos.id ?? null, datos.spoiler ?? false);
+                    agregarMensajePantalla(datos.autor, datos.texto, datos.replyTo ?? null, datos.id ?? null, datos.spoiler ?? false, datos.imagen ?? null);
                 } catch (err) {
-                    // Si falla el descifrado (error de integridad o clave incorrecta), ignoramos el mensaje en silencio
                     console.warn("Mensaje descartado: Clave incorrecta o manipulación de datos.");
                 }
             });
@@ -1230,14 +1324,14 @@
                 return;
             }
 
-            let isSpoiler = false
+            let isSpoiler = false;
             if (typeof comandoEjecutado === 'object' && comandoEjecutado.tipo === 'spoiler') {
-                isSpoiler = true
-                textoMensaje = comandoEjecutado.texto
+                isSpoiler = true;
+                textoMensaje = comandoEjecutado.texto;
             }
 
             if (typeof comandoEjecutado === 'string') {
-                textoMensaje = comandoEjecutado
+                textoMensaje = comandoEjecutado;
             }
 
             const messageId = generarIdMensaje();
@@ -1258,8 +1352,7 @@
 
             // Ciframos localmente antes de enviar a la red
             const payloadCifrado = await cifrarMensaje(JSON.stringify(paqueteDatos), claveCriptografica);
-            
-            // Publicamos directamente al canal de Ably
+
             canalGlobal.publish('msg', payloadCifrado);
 
             if (replyTarget) {
@@ -1298,8 +1391,7 @@
         }
 
         function desplazarAlFinalSiEnfocado(box) {
-            // Si la ventana no tiene el foco, no movemos el scroll: así no hace falta
-            // volver arriba manualmente para leer lo que se ha perdido al recuperar el foco.
+            // Si la ventana no tiene el foco, no movemos el scroll para poder leer lo perdido al volver.
             if (!tieneElFoco) return;
             box.scrollTop = box.scrollHeight;
         }
@@ -1320,12 +1412,17 @@
             box.scrollTop = box.scrollHeight;
         }
 
-        function agregarMensajePantalla(autor, texto, replyTo = null, messageId = null, spoiler = false) {
+        function agregarMensajePantalla(autor, texto, replyTo = null, messageId = null, spoiler = false, imagen = null) {
             const box = document.getElementById('messages');
             const hora = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
+            texto = texto || '';
+            // Solo aceptamos data URLs de imagen bien formadas (evita inyección de HTML)
+            const imagenValida = typeof imagen === 'string' && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(imagen);
+            const textoVisible = texto || (imagenValida ? ETIQUETA_IMAGEN : '');
+
             if (messageId) {
-                mensajesPorId[messageId] = { id: messageId, autor, texto, replyTo, spoiler };
+                mensajesPorId[messageId] = { id: messageId, autor, texto: textoVisible, replyTo, spoiler };
             }
 
             const colorAutor = obtenerColorPorAlias(autor);
@@ -1338,48 +1435,48 @@
                     <span class="reply-text ${mensajesPorId[replyTo.id]?.spoiler ? 'spoiler-text' : ''}">${escaparHTML(replyTo.texto)}</span>
                 </div>` : '';
 
-            // 1. Creamos el nodo principal del mensaje
             const msgElement = document.createElement('div');
-
-            // Asignamos las clases (asumiendo que claseMensaje puede tener varias clases separadas por espacio)
             msgElement.className = `${claseMensaje} msg-item`;
 
-            // Asignamos el dataset de forma nativa (el DOM se encarga de escapar esto correctamente)
             if (messageId) {
-                msgElement.dataset.msgId = messageId; 
+                msgElement.dataset.msgId = messageId;
             }
 
-            // 2. Inyectamos el contenido interno
             let prompt = `[${escaparHTML(autor)}]`;
-            let clickable = 'clickable'
+            let clickable = 'clickable';
             if (settings.hideAliases) {
-                prompt = `⬤`
-                clickable = ''
+                prompt = `⬤`;
+                clickable = '';
             }
+
+            const textoHtml = texto ? `<span class="${spoiler ? 'spoiler-text' : ''}">${resaltarMenciones(texto)}</span>` : '';
+            const imagenHtml = imagenValida ? `<img class="msg-img" src="${imagen}" alt="Imagen enviada por ${escaparHTML(autor)}">` : '';
 
             msgElement.innerHTML = `
                 ${replyHtml}
                 <span class="time">${hora}</span>
                 ${messageId ? `<button type="button" class="reply-button" title="Responder" data-msg-id="${escaparHTML(messageId)}">Resp</button>` : ''}
                 <span class="user ${esMio ? 'own' : ''} ${clickable}" data-alias="${escaparHTML(autor)}" style="color: ${colorAutor}; font-weight: bold;">${prompt}:</span>
-                <span class="${spoiler ? 'spoiler-text' : ''}">${resaltarMenciones(texto)}</span>
+                ${textoHtml}
+                ${imagenHtml}
             `;
 
-            // 3. Lo insertamos en el DOM sin afectar a los hermanos
             box.appendChild(msgElement);
 
+            // La imagen carga de forma asíncrona y cambia la altura: reajustamos el scroll
+            const img = msgElement.querySelector('.msg-img');
+            if (img) {
+                img.addEventListener('load', () => desplazarAlFinalSiEnfocado(box));
+            }
+
             if (settings.selfdestructMessages) {
-                const tiempoVida = settings.selfDestructSeconds * 1000
-                const ahora = Date.now();
-                // Guardamos la marca de tiempo absoluta de expiración
-                msgElement.dataset.expiresAt = ahora + tiempoVida;
+                const tiempoVida = settings.selfDestructSeconds * 1000;
+                msgElement.dataset.expiresAt = Date.now() + tiempoVida;
 
                 setTimeout(() => {
                     animarYBorrar(msgElement);
                 }, tiempoVida);
             }
-
-            const nuevo = box.lastElementChild;
 
             desplazarAlFinalSiEnfocado(box);
         }
@@ -1396,26 +1493,28 @@
         function resaltarMenciones(texto) {
             const textoEscapado = escaparHTML(texto);
             const aliases = [...new Set([miAlias, ...miembrosConectados].filter(Boolean))];
-            
+
             // Primero reemplazamos @room
             let resultado = textoEscapado.replace(/@room\b/g, '<span class="mention clickable" data-alias="room">@room</span>');
-            
+
             if (aliases.length === 0) {
                 return resultado;
             }
 
             const patrones = aliases
                 .sort((a, b) => b.length - a.length)
-                .map(alias => alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+                .map(alias => escaparHTML(alias).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
                 .join('|');
 
             const regex = new RegExp(`@(${patrones})(?=\\b)`, 'g');
             return resultado.replace(regex, '<span class="mention clickable" data-alias="$1">@$1</span>');
         }
 
+        // insertAdjacentHTML en vez de innerHTML += : no destruye los nodos existentes
+        // (con innerHTML += se perdían los listeners y los temporizadores de autodestrucción)
         function agregarMensajeSistema(texto) {
             const box = document.getElementById('messages');
-            box.innerHTML += `<div class="msg"><span class="system">${texto}</span></div>`;
+            box.insertAdjacentHTML('beforeend', `<div class="msg"><span class="system">${texto}</span></div>`);
             desplazarAlFinalSiEnfocado(box);
         }
 
@@ -1428,7 +1527,7 @@
             const preview = document.getElementById('reply-preview');
             preview.innerHTML = `
                 <span class="close-reply" onclick="cancelarReply()">×</span>
-                Respondiendo a ${settings.hideAliases ? '⬤' : target.autor}: <span class="reply-info">${escaparHTML(target.texto)}</span>
+                Respondiendo a ${settings.hideAliases ? '⬤' : escaparHTML(target.autor)}: <span class="reply-info">${escaparHTML(target.texto)}</span>
             `;
             preview.classList.add('visible');
             preview.hidden = false;
@@ -1459,16 +1558,22 @@
 
         function agregarBarraSinLeer() {
             const box = document.getElementById('messages');
-            box.innerHTML += `<div class="unread-bar">Mensajes sin leer</div>`;
+            box.insertAdjacentHTML('beforeend', `<div class="unread-bar">Mensajes sin leer</div>`);
         }
 
         function eliminarBarraSinLeer() {
-            const bar = document.querySelector('.unread-bar')
-            if (bar) bar.parentNode.removeChild(bar)
+            const bar = document.querySelector('.unread-bar');
+            if (bar) bar.remove();
         }
 
+        // Escapa también comillas: los alias se insertan en atributos (data-alias="...")
         function escaparHTML(str) {
-            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            return String(str ?? '')
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
         }
 
         const ANIMALES_Y_COSA = ["Nutria", "Mapache", "Calamar", "Capibara", "Croqueta", "Pangolín", "Chistorra", "Paloma", "Gatito", "Keyup", "Churro", "Miniboss", "Jefe", "Manta", "Regleta", "Tiburón martillo"];
@@ -1497,59 +1602,50 @@
                 "#a855f7", // púrpura
                 "#d946ef", // fucsia
                 "#ec4899", // rosa
-                // Tonos tierra/neutros vivos
-                "#d1d5db", // Gris plata brillante (útil para textos secundarios)
-                "#f59e0b", // Ámbar (un punto medio entre naranja y amarillo)
-
-                // Tonos verdes y azulados fríos
-                "#34d399", // Verde esmeralda claro (más claro que el verde base)
-                "#2dd4bf", // Turquesa eléctrico
-                "#38bdf8", // Azul cielo intenso
-                "#818cf8", // Índigo claro (lavanda vibrante)
-
-                // Tonos profundos para contraste
-                "#c084fc", // Púrpura suave
-                "#fb923c"  // Naranja suave (para separar bien del naranja principal)
+                "#d1d5db", // gris plata brillante
+                "#f59e0b", // ámbar
+                "#34d399", // verde esmeralda claro
+                "#2dd4bf", // turquesa eléctrico
+                "#38bdf8", // azul cielo intenso
+                "#818cf8", // índigo claro
+                "#c084fc", // púrpura suave
+                "#fb923c"  // naranja suave
             ];
 
-            alias = str.trim().toLowerCase();
-        
+            const alias = String(str ?? '').trim().toLowerCase();
+
             let hash = 0x811c9dc5;
-        
+
             for (let i = 0; i < alias.length; i++) {
                 hash ^= alias.charCodeAt(i);
                 hash = Math.imul(hash, 0x01000193);
             }
-        
+
             return PALETA[(hash >>> 0) % PALETA.length];
         }
 
         function actualizarContador() {
-            // Pedimos a Ably el array de miembros presentes en este canal
             canalGlobal.presence.get((err, members) => {
                 if (err) return console.error("Error al obtener presencia:", err);
-                
+
                 const conectados = members.length;
                 const texto = ` ${conectados} conectado${conectados !== 1 ? 's' : ''}`;
-                
+
                 document.getElementById('user-count').innerText = texto;
             });
         }
 
-        
-
         window.addEventListener('focus', () => {
             tieneElFoco = true;
-            
-            // Limpiamos las alertas solo si teníamos mensajes pendientes
+
             if (unreadCount > 0) {
                 setTimeout(() => eliminarBarraSinLeer(), 3000);
             } else {
                 eliminarBarraSinLeer();
             }
-            
+
             unreadCount = 0;
-            document.title = tituloBase; // Restaura el título original
+            document.title = tituloBase;
             aplicarEstadoConfiguracion();
         });
 
@@ -1563,25 +1659,15 @@
                 const box = document.getElementById('messages');
                 const tiempoActual = Date.now();
                 const mensajes = box.querySelectorAll('[data-expires-at]');
-                
+
                 mensajes.forEach(msg => {
                     const expiracion = parseInt(msg.dataset.expiresAt, 10);
-                    
-                    // Si el tiempo actual ya superó el tiempo de vida asignado...
                     if (tiempoActual >= expiracion) {
-                        // MODIFICACIÓN: En lugar de remove(), usamos la animación súper rápida
-                        animarYBorrar(msg, true); // true = usar transición acelerada
+                        animarYBorrar(msg, true); // transición acelerada
                     }
                 });
             }
         });
-
-        document.querySelector('#setting-selfdestructMessages').addEventListener('change', () => {
-            const checked = this.event.target.checked
-            document.querySelector('#setting-selfDestructSeconds').parentNode.classList[!checked ? 'add' : 'remove']('disabled')
-            if (!checked) document.querySelector('#setting-selfDestructSeconds').setAttribute('disabled', true)
-            else document.querySelector('#setting-selfDestructSeconds').removeAttribute('disabled')
-        })
     </script>
 </body>
 </html>
