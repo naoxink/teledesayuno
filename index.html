@@ -1559,6 +1559,7 @@
         function agregarBarraSinLeer() {
             const box = document.getElementById('messages');
             box.insertAdjacentHTML('beforeend', `<div class="unread-bar">Mensajes sin leer</div>`);
+            box.scrollTop = box.scrollHeight; // Desplazamos para que se vea la barra tenga el foco o no
         }
 
         function eliminarBarraSinLeer() {
