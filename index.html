@@ -244,6 +244,13 @@
             color: var(--accent);
             font-weight: 700;
         }
+        .msg a.msg-link {
+            color: var(--accent);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            word-break: break-all;
+        }
+        .msg a.msg-link:hover { opacity: 0.8; }
         .clickable { cursor: pointer; }
         .mention.clickable:hover { text-decoration: underline; }
         .user.clickable { cursor: pointer; }
@@ -1449,7 +1456,7 @@
                 clickable = '';
             }
 
-            const textoHtml = texto ? `<span class="${spoiler ? 'spoiler-text' : ''}">${resaltarMenciones(texto)}</span>` : '';
+            const textoHtml = texto ? `<span class="${spoiler ? 'spoiler-text' : ''}">${formatearTextoMensaje(texto)}</span>` : '';
             const imagenHtml = imagenValida ? `<img class="msg-img" src="${imagen}" alt="Imagen enviada por ${escaparHTML(autor)}">` : '';
 
             msgElement.innerHTML = `
@@ -1488,6 +1495,64 @@
             const aliasEscapado = miAlias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const regex = new RegExp(`@${aliasEscapado}(?=\\b)`, 'i');
             return regex.test(texto);
+        }
+
+        // ====== DETECCIÓN DE ENLACES ======
+        // Quita puntuación final que casi nunca forma parte de la URL ("mira https://x.com.")
+        // y paréntesis/corchetes de cierre solo si no tienen su pareja dentro de la URL.
+        function recortarFinalUrl(url) {
+            const pares = { ')': '(', ']': '[', '}': '{' };
+            while (url.length) {
+                const ultimo = url.slice(-1);
+                if (/[.,;:!?'"…]/.test(ultimo)) {
+                    url = url.slice(0, -1);
+                } else if (pares[ultimo] && url.split(ultimo).length > url.split(pares[ultimo]).length) {
+                    url = url.slice(0, -1);
+                } else {
+                    break;
+                }
+            }
+            return url;
+        }
+
+        // Devuelve la URL absoluta (solo http/https) o null si no es válida
+        function normalizarUrl(url) {
+            const candidata = /^www\./i.test(url) ? 'https://' + url : url;
+            try {
+                const u = new URL(candidata);
+                return (u.protocol === 'http:' || u.protocol === 'https:') ? u.href : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // Trabaja sobre el texto SIN escapar: parte en trozos "texto" y "URL".
+        // Los trozos de texto pasan por resaltarMenciones (que escapa el HTML);
+        // las URLs se convierten en <a target="_blank"> con todo escapado.
+        function formatearTextoMensaje(texto) {
+            const REGEX_URL = /(?:https?:\/\/|www\.)[^\s<>"']+/gi;
+            let html = '';
+            let cursor = 0;
+            let m;
+
+            while ((m = REGEX_URL.exec(texto)) !== null) {
+                const inicio = m.index;
+                const previo = inicio > 0 ? texto[inicio - 1] : '';
+                // Evita falsos positivos tipo "awww.algo" o "foo/www.x"
+                if (/[\w@/.]/.test(previo)) continue;
+
+                const url = recortarFinalUrl(m[0]);
+                const href = normalizarUrl(url);
+                if (!href) continue;
+
+                html += resaltarMenciones(texto.slice(cursor, inicio));
+                html += `<a class="msg-link" href="${escaparHTML(href)}" target="_blank" rel="noopener noreferrer nofollow">${escaparHTML(url)}</a>`;
+                cursor = inicio + url.length;
+                REGEX_URL.lastIndex = cursor; // lo recortado vuelve al texto normal
+            }
+
+            html += resaltarMenciones(texto.slice(cursor));
+            return html;
         }
 
         function resaltarMenciones(texto) {
