@@ -974,6 +974,11 @@
                     return `${unflip} ${texto.replace(cmd, '').trim()}`;
                 case '/spoiler':
                     return { tipo: 'spoiler', texto: texto.replace(cmd, '').trim() };
+                case '/random': {
+                    const aliasAntiguo = miAlias;
+                    miAlias = generarAliasUnico();
+                    return { tipo: 'alias-change', aliasAntiguo, aliasNuevo: miAlias };
+                }
                 case '/help':
                     agregarMensajeSistema('Mostrando comandos disponibles. También puedes escribir /help para ver esta lista de nuevo.');
                     agregarMensajeSistema('- /clear - Limpiar mensajes de usuarios localmente');
@@ -983,6 +988,7 @@
                     agregarMensajeSistema('- /tableflip - Añadir emoticono (╯°□°）╯︵ ┻━┻');
                     agregarMensajeSistema('- /unflip - Añadir emoticono ┬─┬ ノ( ゜-゜ノ)');
                     agregarMensajeSistema('- /spoiler - Envía un mensaje borroso');
+                    agregarMensajeSistema('- /random - Asignarte un alias aleatorio nuevo');
                     agregarMensajeSistema('- Imágenes: pega con Ctrl+V, arrastra sobre el chat o usa el botón 📎');
                     return false;
             }
@@ -1807,6 +1813,23 @@
             const animal = ANIMALES_Y_COSA[Math.floor(Math.random() * ANIMALES_Y_COSA.length)];
             const adjetivo = ADJETIVOS[Math.floor(Math.random() * ADJETIVOS.length)];
             return `${animal} ${adjetivo}`;
+        }
+
+        // Genera un alias aleatorio que no coincida con ninguno de la sala
+        function generarAliasUnico() {
+            const ocupados = new Set([miAlias, ...miembrosConectados]);
+            let alias;
+            let intentos = 0;
+            do {
+                alias = generarAliasAleatorio();
+                intentos++;
+            } while (ocupados.has(alias) && intentos < 20);
+        
+            // Si tras varios intentos sigue repetido, añadimos sufijo como en la conexión inicial
+            if (ocupados.has(alias)) {
+                alias = `${alias} #${Math.floor(10 + Math.random() * 90)}`;
+            }
+            return alias;
         }
 
         // SELECCIÓN DE COLOR ADAPTATIVA (mismo alias -> mismo color siempre)
