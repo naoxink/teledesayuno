@@ -484,6 +484,35 @@
             text-align: center;
             background-color: darkslategray;
         }
+        #emoji-suggester {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            bottom: calc(100% + 4px);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-shadow: 0 10px 20px rgba(0,0,0,.25);
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 20;
+            font-size: 0.9rem;
+        }
+        .emoji-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 10px;
+            cursor: pointer;
+            color: var(--text);
+        }
+        .emoji-item:hover { background: var(--line-hover); }
+        .emoji-item.selected {
+            background: rgba(0, 188, 212, 0.2);
+            color: var(--accent);
+        }
+        .emoji-item .emoji-char { font-size: 1.2rem; line-height: 1; }
+        .emoji-item .emoji-name { font-size: 0.85rem; }
     </style>
 </head>
 <body>
@@ -594,6 +623,7 @@
                        onchange="if (this.files[0]) enviarImagen(this.files[0]); this.value='';">
                 <input type="text" id="msg-input" placeholder="Mensaje seguro..." onkeypress="if(event.key==='Enter') enviar()">
                 <div id="mention-suggester" class="mention-suggester" hidden></div>
+                <div id="emoji-suggester" hidden></div>
                 <button onclick="enviar()">Enviar</button>
             </div>
         </div>
@@ -648,6 +678,9 @@
             const input = document.getElementById('msg-input');
             input.addEventListener('input', handleMentionInput);
             input.addEventListener('keydown', handleMentionKeydown);
+            input.addEventListener('input', handleEmojiInput);
+            input.addEventListener('keydown', handleEmojiKeydown);
+            input.addEventListener('blur', () => setTimeout(esconderEmojiSuggester, 100));
 
             // Pegar imágenes desde el portapapeles
             input.addEventListener('paste', (e) => {
@@ -936,6 +969,213 @@
             }
         }
 
+        // ====== SUGERIDOR DE EMOJIS ======
+        // [emoji, "palabras clave separadas por espacios"]; la primera palabra es la que se muestra.
+        const EMOJIS = [
+            ['😀', 'sonrisa smile grin feliz'], ['😃', 'alegre happy'], ['😄', 'contento risa'],
+            ['😁', 'sonriente beaming'], ['😆', 'carcajada laugh'], ['😅', 'sudor nervioso sweat_smile'],
+            ['😂', 'llorar_de_risa joy lol jaja'], ['🤣', 'rofl suelo_de_risa'], ['🙂', 'sonrisa_leve slight_smile'],
+            ['🙃', 'reves upside_down'], ['😉', 'guino wink'], ['😊', 'sonrojado blush'],
+            ['😇', 'angel halo inocente'], ['🥰', 'enamorado love amor'], ['😍', 'ojos_corazon heart_eyes'],
+            ['🤩', 'estrellas star_struck flipando'], ['😘', 'beso kiss'], ['😋', 'rico yum'],
+            ['😛', 'lengua tongue'], ['😜', 'guino_lengua loco'], ['🤪', 'zany loquillo'],
+            ['😎', 'gafas cool guay'], ['🤓', 'friki nerd'], ['🧐', 'monoculo curioso'],
+            ['🤔', 'pensando thinking hmm'], ['🤨', 'ceja sospecha'], ['😐', 'neutral serio'],
+            ['😑', 'inexpresivo expressionless'], ['😶', 'sin_boca mudo'], ['🙄', 'ojos_en_blanco eyeroll'],
+            ['😏', 'picaro smirk'], ['😒', 'aburrido unamused'], ['😬', 'mueca grimace'],
+            ['😌', 'aliviado relieved'], ['😔', 'pensativo triste pensive'], ['😴', 'dormido sleep zzz sueno'],
+            ['🤤', 'babeando drool'], ['😷', 'mascarilla mask enfermo'], ['🤒', 'fiebre termometro'],
+            ['🤕', 'herido venda'], ['🤢', 'nauseas asco'], ['🤮', 'vomito puke'],
+            ['🤧', 'estornudo sneeze'], ['🥵', 'calor hot'], ['🥶', 'frio cold'],
+            ['🥴', 'mareado woozy'], ['😵', 'noqueado dizzy'], ['🤯', 'mente_explotando mindblown'],
+            ['🥳', 'fiesta party'], ['🥸', 'disfraz disguise'], ['😕', 'confuso confused'],
+            ['😟', 'preocupado worried'], ['🙁', 'triste frown'], ['😮', 'sorpresa wow'],
+            ['😲', 'asombrado astonished'], ['😳', 'ruborizado flushed'], ['🥺', 'suplicando pleading'],
+            ['😢', 'lagrima cry llorar'], ['😭', 'sollozo sob llorando'], ['😱', 'miedo scream grito'],
+            ['😖', 'frustrado confounded'], ['😩', 'agotado weary'], ['😫', 'cansado tired'],
+            ['😤', 'resoplido huff'], ['😡', 'enfadado angry rabia'], ['🤬', 'insultos cursing'],
+            ['😈', 'diablillo devil'], ['💀', 'calavera skull muerto'], ['☠️', 'veneno crossbones'],
+            ['💩', 'caca poop mierda'], ['🤡', 'payaso clown'], ['👻', 'fantasma ghost'],
+            ['👽', 'alien extraterrestre'], ['🤖', 'robot'], ['🙈', 'mono_ciego see_no_evil'],
+            ['🙉', 'mono_sordo hear_no_evil'], ['🙊', 'mono_mudo speak_no_evil'],
+            ['👍', 'pulgar_arriba thumbsup ok bien'], ['👎', 'pulgar_abajo thumbsdown mal'],
+            ['👌', 'perfecto okhand'], ['✌️', 'victoria paz peace'], ['🤞', 'dedos_cruzados suerte'],
+            ['🤟', 'te_quiero love_you'], ['🤘', 'rock cuernos'], ['🤙', 'llamame call_me'],
+            ['👈', 'izquierda left'], ['👉', 'derecha right'], ['👆', 'arriba up'], ['👇', 'abajo down'],
+            ['☝️', 'indice uno'], ['✋', 'mano alto stop'], ['🖐️', 'mano_abierta hand'],
+            ['👋', 'saludo hola wave adios'], ['👏', 'aplausos clap'], ['🙌', 'manos_arriba raised_hands'],
+            ['🙏', 'rezar gracias pray porfa'], ['🤝', 'apreton handshake trato'], ['💪', 'musculo fuerza muscle'],
+            ['🫡', 'saludo_militar salute'], ['🫠', 'derritiendose melting'], ['🫶', 'corazon_manos heart_hands'],
+            ['❤️', 'corazon heart rojo'], ['🧡', 'corazon_naranja'], ['💛', 'corazon_amarillo'],
+            ['💚', 'corazon_verde'], ['💙', 'corazon_azul'], ['💜', 'corazon_morado'],
+            ['🖤', 'corazon_negro'], ['🤍', 'corazon_blanco'], ['💔', 'corazon_roto brokenheart'],
+            ['💯', 'cien hundred'], ['💥', 'explosion boom'], ['💫', 'mareo estrella_fugaz'],
+            ['💤', 'zzz sueno'], ['💦', 'gotas sudor'], ['🔥', 'fuego fire lit'],
+            ['✨', 'brillos sparkles'], ['⭐', 'estrella star'], ['🌟', 'estrella_brillante'],
+            ['🎉', 'fiesta tada confeti'], ['🎊', 'confeti confetti'], ['🎂', 'tarta cumple pastel'],
+            ['🎁', 'regalo gift'], ['🏆', 'trofeo trophy'], ['🥇', 'oro medalla'],
+            ['🎮', 'videojuegos mando gamepad'], ['🕹️', 'joystick'], ['🎲', 'dado dice'],
+            ['🎵', 'musica nota'], ['🎧', 'auriculares headphones'], ['📱', 'movil telefono phone'],
+            ['💻', 'portatil laptop ordenador'], ['⌨️', 'teclado keyboard'], ['🖥️', 'pantalla desktop'],
+            ['💡', 'idea bombilla'], ['📷', 'camara foto camera'], ['🔒', 'candado lock'],
+            ['🔑', 'llave key'], ['⚠️', 'aviso warning cuidado'], ['❌', 'cruz x no'],
+            ['✅', 'check hecho ok si'], ['❓', 'pregunta question'], ['❗', 'exclamacion'],
+            ['💬', 'mensaje chat'], ['👀', 'ojos mirando eyes'], ['🧠', 'cerebro brain'],
+            ['🐶', 'perro dog'], ['🐱', 'gato cat'], ['🐭', 'raton mouse'], ['🦊', 'zorro fox'],
+            ['🐻', 'oso bear'], ['🐼', 'panda'], ['🐸', 'rana frog'], ['🐵', 'mono monkey'],
+            ['🐔', 'gallina chicken'], ['🐧', 'pinguino penguin'], ['🦆', 'pato duck'],
+            ['🦉', 'buho owl'], ['🐢', 'tortuga turtle'], ['🐙', 'pulpo octopus'],
+            ['🦀', 'cangrejo crab'], ['🐌', 'caracol snail'], ['🦄', 'unicornio unicorn'],
+            ['☕', 'cafe coffee desayuno'], ['🍵', 'te tea'], ['🍺', 'cerveza beer'],
+            ['🍻', 'brindis cheers'], ['🍷', 'vino wine'], ['🥂', 'copas champan'],
+            ['🍕', 'pizza'], ['🍔', 'hamburguesa burger'], ['🍟', 'patatas_fritas fries'],
+            ['🌮', 'taco'], ['🍣', 'sushi'], ['🍩', 'donut rosquilla'], ['🍪', 'galleta cookie'],
+            ['🍫', 'chocolate'], ['🥐', 'cruasan croissant'], ['🍞', 'pan bread tostada'],
+            ['🍳', 'huevo frito egg'], ['🥓', 'bacon beicon'], ['🍎', 'manzana apple'],
+            ['🍌', 'platano banana'], ['🍉', 'sandia watermelon'], ['🍓', 'fresa strawberry'],
+            ['☀️', 'sol sun'], ['🌙', 'luna moon'], ['⛅', 'nube cloud'], ['🌧️', 'lluvia rain'],
+            ['⚡', 'rayo lightning'], ['❄️', 'nieve snow'], ['🌈', 'arcoiris rainbow'],
+            ['🚀', 'cohete rocket'], ['✈️', 'avion plane'], ['🚗', 'coche car'],
+            ['🏠', 'casa home'], ['⏰', 'reloj alarma clock'], ['💰', 'dinero money'],
+            ['🤷', 'ni_idea shrug'], ['🤦', 'facepalm'], ['🙋', 'levantar_mano'],
+            ['🤌', 'italiano pellizco'], ['🫂', 'abrazo hug'], ['🤗', 'abrazo hugging'],
+            ['🥱', 'bostezo yawn'], ['🤫', 'silencio shh'], ['🤭', 'risita oops'],
+            ['😈', 'diablo malvado'], ['🍆', 'berenjena'], ['🍑', 'melocoton culo'],
+            ['🐐', 'cabra goat'], ['🐍', 'serpiente snake'], ['🐟', 'pez fish']
+        ];
+        
+        const EMOJI_MIN_CHARS = 2;   // caracteres tras ":" para empezar a sugerir
+        const EMOJI_MAX_RESULTS = 8;
+        let emojiMatches = [];
+        let emojiIndex = -1;
+        let emojiNavigationActive = false;
+        
+        function normalizarBusqueda(s) {
+            return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        }
+        
+        // Prepara el índice una sola vez
+        const EMOJI_INDEX = EMOJIS.map(([char, kw]) => {
+            const palabras = normalizarBusqueda(kw).split(' ');
+            return { char, nombre: palabras[0], palabras };
+        });
+        
+        function buscarEmojis(consulta) {
+            const q = normalizarBusqueda(consulta);
+            const puntuados = [];
+            for (const e of EMOJI_INDEX) {
+                let score = 0;
+                if (e.nombre === q) score = 4;
+                else if (e.nombre.startsWith(q)) score = 3;
+                else if (e.palabras.some(p => p.startsWith(q))) score = 2;
+                else if (e.palabras.some(p => p.includes(q))) score = 1;
+                if (score) puntuados.push({ e, score });
+            }
+            // sort estable: a igual puntuación se mantiene el orden de la lista
+            puntuados.sort((a, b) => b.score - a.score);
+            return puntuados.slice(0, EMOJI_MAX_RESULTS).map(p => p.e);
+        }
+        
+        function esconderEmojiSuggester() {
+            const box = document.getElementById('emoji-suggester');
+            box.hidden = true;
+            box.innerHTML = '';
+            emojiMatches = [];
+            emojiIndex = -1;
+            emojiNavigationActive = false;
+        }
+        
+        function resaltarEmoji(index) {
+            document.querySelectorAll('#emoji-suggester .emoji-item').forEach((item, i) => {
+                item.classList.toggle('selected', i === index);
+                if (i === index) item.scrollIntoView({ block: 'nearest' });
+            });
+        }
+        
+        function renderEmojiSuggester() {
+            const box = document.getElementById('emoji-suggester');
+            box.innerHTML = emojiMatches.map((e, i) =>
+                `<div class="emoji-item${i === emojiIndex ? ' selected' : ''}" data-index="${i}">
+                    <span class="emoji-char">${e.char}</span>
+                    <span class="emoji-name">:${escaparHTML(e.nombre)}:</span>
+                </div>`
+            ).join('');
+            box.hidden = false;
+        
+            box.querySelectorAll('.emoji-item').forEach(item => {
+                item.addEventListener('mousedown', (event) => {
+                    event.preventDefault(); // no perder el foco del input
+                    insertarEmoji(emojiMatches[Number(item.dataset.index)]);
+                });
+            });
+        }
+        
+        function insertarEmoji(emoji) {
+            if (!emoji) return;
+            const input = document.getElementById('msg-input');
+            const caret = input.selectionStart;
+            const before = input.value.slice(0, caret);
+            const after = input.value.slice(caret);
+            const match = before.match(/(?:^|\s):([^\s:]*)$/);
+            if (!match) return esconderEmojiSuggester();
+        
+            const start = before.length - match[1].length - 1; // posición del ":"
+            const nuevoAntes = before.slice(0, start) + emoji.char;
+            input.value = nuevoAntes + after;
+            input.focus();
+            input.setSelectionRange(nuevoAntes.length, nuevoAntes.length);
+            esconderEmojiSuggester();
+        }
+        
+        function handleEmojiInput() {
+            const input = document.getElementById('msg-input');
+            const before = input.value.slice(0, input.selectionStart);
+            // ":" al inicio o tras espacio (evita "10:30", "https://", etc.)
+            const match = before.match(/(?:^|\s):([^\s:]{2,})$/);
+        
+            if (!match || match[1].length < EMOJI_MIN_CHARS) {
+                return esconderEmojiSuggester();
+            }
+        
+            emojiMatches = buscarEmojis(match[1]);
+            if (emojiMatches.length === 0) {
+                return esconderEmojiSuggester();
+            }
+            emojiIndex = 0;
+            emojiNavigationActive = false;
+            renderEmojiSuggester();
+        }
+        
+        function handleEmojiKeydown(event) {
+            const box = document.getElementById('emoji-suggester');
+            if (box.hidden) return;
+        
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                emojiNavigationActive = true;
+                emojiIndex = (emojiIndex + 1) % emojiMatches.length;
+                resaltarEmoji(emojiIndex);
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                emojiNavigationActive = true;
+                emojiIndex = (emojiIndex - 1 + emojiMatches.length) % emojiMatches.length;
+                resaltarEmoji(emojiIndex);
+            } else if (event.key === 'Tab') {
+                event.preventDefault();
+                insertarEmoji(emojiMatches[emojiIndex]);
+            } else if (event.key === 'Enter') {
+                // Enter solo elige si el usuario ha navegado con las flechas; si no, envía el mensaje
+                if (emojiNavigationActive && emojiMatches[emojiIndex]) {
+                    event.preventDefault();
+                    insertarEmoji(emojiMatches[emojiIndex]);
+                } else {
+                    esconderEmojiSuggester();
+                }
+            } else if (event.key === 'Escape') {
+                esconderEmojiSuggester();
+            }
+        }
+        
         function ejecutarComandoSiHay(texto) {
 
             const cmd = texto.split(' ')[0].toLowerCase();
