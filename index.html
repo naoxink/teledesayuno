@@ -166,22 +166,54 @@
             background: rgba(0,188,212,0.08);
             border: 1px solid rgba(0,188,212,0.35);
         }
+
         .reply-block {
-            border-left: 3px solid var(--accent);
-            padding-left: 10px;
-            margin-bottom: 6px;
-            opacity: 0.92;
-            font-size: 0.88rem;
-            color: #cfd8dc;
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            width: fit-content;
+            max-width: 100%;
+            box-sizing: border-box;
+            margin: 4px 0 3px 0;
+            padding: 2px 10px 2px 8px;
+            border-left: 3px solid var(--reply-color, var(--border));
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 0 8px 8px 0;
+            font-size: 0.78rem;
+            color: #8a8a8a;
+            cursor: pointer;
+            overflow: hidden;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+        .reply-block:hover {
+            background: rgba(255, 255, 255, 0.09);
+            color: #b0b0b0;
+        }
+        .reply-block .reply-icon {
+            flex-shrink: 0;
+            opacity: 0.6;
         }
         .reply-block .reply-author {
+            flex-shrink: 0;
             font-weight: 700;
-            color: var(--accent);
-            margin-bottom: 4px;
+            opacity: 0.9;
         }
         .reply-block .reply-text {
-            white-space: pre-wrap;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
+
+        /* Destello al saltar al mensaje original */
+        .msg.flash-target {
+            animation: flash-msg 1.6s ease-out;
+        }
+        @keyframes flash-msg {
+            0%, 35% { background: rgba(79, 193, 255, 0.28); }
+            100%    { background: transparent; }
+        }
+
         .reply-button {
             background: transparent;
             border: none;
@@ -719,6 +751,19 @@
             });
 
             messagesBox.addEventListener('click', (event) => {
+                const replyBlock = event.target.closest('.reply-block');
+                if (replyBlock) {
+                    const id = replyBlock.dataset.replyId;
+                    const original = id && messagesBox.querySelector(`.msg[data-msg-id="${CSS.escape(id)}"]`);
+                    if (original) {
+                        original.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                        original.classList.remove('flash-target');
+                        void original.offsetWidth; // reinicia la animación si se pulsa varias veces
+                        original.classList.add('flash-target');
+                        setTimeout(() => original.classList.remove('flash-target'), 1700);
+                    }
+                    return;
+                }
                 const button = event.target.closest('.reply-button');
                 if (button) {
                     event.preventDefault();
@@ -1684,8 +1729,11 @@
             const esMencionado = contieneMiMencion(texto);
             const claseMensaje = esMencionado ? 'msg mention-target' : 'msg';
             const replyHtml = replyTo ? `
-                <div class="reply-block">
-                    <span class="reply-author">En respuesta a${settings.hideAliases ? '' : ' ' + escaparHTML(replyTo.autor)}:</span>
+                <div class="reply-block" data-reply-id="${escaparHTML(replyTo.id ?? '')}"
+                     style="--reply-color: ${obtenerColorPorAlias(replyTo.autor)};"
+                     title="En respuesta a${settings.hideAliases ? '' : ' ' + escaparHTML(replyTo.autor)}">
+                    <span class="reply-icon">↩</span>
+                    ${settings.hideAliases ? '' : `<span class="reply-author" style="color: ${obtenerColorPorAlias(replyTo.autor)};">${escaparHTML(replyTo.autor)}</span>`}
                     <span class="reply-text ${mensajesPorId[replyTo.id]?.spoiler ? 'spoiler-text' : ''}">${escaparHTML(replyTo.texto)}</span>
                 </div>` : '';
 
